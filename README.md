@@ -1,3 +1,4 @@
+
 # Money Management (Rotating Savings + Charity + Loans)
 
 Production-ready Next.js (App Router) application for managing a transparent, auditable rotating savings group ledger with charity and internal loans.
@@ -84,3 +85,6 @@ Same env vars as above. Ensure you use a Node runtime compatible with Next.js.
 - **Versioned rules**: contributions and penalties are versioned by effective date; payments store their own `baseAmountPaise` and `penaltyAmountPaise` permanently.
 - **Audit logs**: every admin write action records `oldValue` and `newValue` JSON along with timestamp and IP headers.
 
+
+# youth-managment
+>>>>>>> 89a6c71473aa95ab209b846b8c45c540add56e4f
