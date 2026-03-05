@@ -1,0 +1,273 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  LATE
+}
+
+enum LoanStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  CLOSED
+  DEFAULTED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  role         UserRole @default(USER)
+  isActive     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Admin actions (audit + ownership)
+  contributionRulesCreated ContributionRule[] @relation("ContributionRuleCreatedBy")
+  penaltyRulesCreated      PenaltyRule[]      @relation("PenaltyRuleCreatedBy")
+  paymentsRecorded         Payment[]          @relation("PaymentRecordedBy")
+  charitiesCreated         Charity[]          @relation("CharityCreatedBy")
+  loansCreated             Loan[]             @relation("LoanCreatedBy")
+  loansApproved            Loan[]             @relation("LoanApprovedBy")
+  installmentsRecorded     LoanInstallment[]  @relation("LoanInstallmentRecordedBy")
+  auditLogs                AuditLog[]         @relation("AuditLogAdmin")
+
+  @@index([role])
+  @@index([isActive])
+}
+
+model Member {
+  id        String       @id @default(cuid())
+  memberUid String       @unique // human-facing unique ID
+  fullName  String
+  phone     String?
+  email     String?
+  address   String?
+
+  joinDate DateTime
+  exitDate DateTime?
+  status   MemberStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments Payment[]
+  loans    Loan[]
+
+  @@index([status])
+  @@index([joinDate])
+}
+
+/// Versioned monthly contribution rules.
+/// Exactly one rule can exist per (month, year).
+model ContributionRule {
+  id                 String   @id @default(cuid())
+  amountPaise        Int
+  effectiveFromMonth Int
+  effectiveFromYear  Int
+
+  createdById String
+  createdBy   User   @relation("ContributionRuleCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@unique([effectiveFromMonth, effectiveFromYear])
+  @@index([effectiveFromYear, effectiveFromMonth])
+  @@index([createdById])
+}
+
+/// Versioned penalty rules (late fee).
+/// The newest rule at or before a payment's due date applies, but each Payment stores its own penaltyAmountPaise permanently.
+model PenaltyRule {
+  id           String   @id @default(cuid())
+  amountPaise  Int
+  effectiveFrom DateTime
+
+  createdById String
+  createdBy   User   @relation("PenaltyRuleCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@unique([effectiveFrom])
+  @@index([effectiveFrom])
+  @@index([createdById])
+}
+
+model Payment {
+  id String @id @default(cuid())
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
+
+  month Int
+  year  Int
+
+  baseAmountPaise    Int
+  penaltyAmountPaise Int @default(0)
+  totalAmountPaise   Int
+
+  status        PaymentStatus @default(PENDING)
+  paymentMethod PaymentMethod?
+  paidAt        DateTime?
+
+  recordedById String
+  recordedBy   User @relation("PaymentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  receipt Receipt?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([memberId, month, year])
+  @@index([year, month])
+  @@index([status])
+  @@index([memberId])
+}
+
+model Receipt {
+  id String @id @default(cuid())
+
+  paymentId String  @unique
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  receiptNumber String @unique
+  pdfUrl        String?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Charity {
+  id          String   @id @default(cuid())
+  title       String
+  beneficiary String
+  purpose     String?
+  amountPaise Int
+  date        DateTime
+  notes       String?
+  imageUrl    String?
+
+  createdById String
+  createdBy   User @relation("CharityCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@index([createdById])
+}
+
+model Loan {
+  id String @id @default(cuid())
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
+
+  principalPaise   Int
+  monthlyRateBps   Int // basis points per month (e.g., 200 = 2.00%)
+  durationMonths   Int
+  startDate        DateTime
+  status           LoanStatus @default(PENDING_APPROVAL)
+
+  // Month 1 is interest-only; subsequent behavior is modeled via installments.
+  termsJson Json?
+
+  createdById String
+  createdBy   User @relation("LoanCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  approvedById String?
+  approvedBy   User? @relation("LoanApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
+  approvedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  installments LoanInstallment[]
+
+  @@index([memberId])
+  @@index([status])
+  @@index([startDate])
+}
+
+model LoanInstallment {
+  id     String @id @default(cuid())
+  loanId String
+  loan   Loan   @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  installmentNumber Int
+  dueDate           DateTime
+
+  interestDuePaise  Int
+  principalDuePaise Int
+
+  amountPaidPaise Int @default(0)
+  paidAt          DateTime?
+
+  overdueInterestPaise Int @default(0)
+
+  recordedById String?
+  recordedBy   User? @relation("LoanInstallmentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([loanId, installmentNumber])
+  @@index([dueDate])
+  @@index([loanId])
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  adminId String
+  admin   User @relation("AuditLogAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+
+  action   String
+  entity   String
+  entityId String?
+
+  oldValue Json?
+  newValue Json?
+
+  ipAddress String?
+  userAgent String?
+
+  timestamp DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([adminId, timestamp])
+  @@index([entity, entityId])
+}
+
+model Setting {
+  key   String @id
+  value Json
+
+  updatedAt DateTime @updatedAt
+}
