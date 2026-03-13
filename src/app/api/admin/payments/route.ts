@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const memberId = searchParams.get("memberId");
     const q = (searchParams.get("q") ?? "").trim();
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (month) where.month = Number(month);
     if (year) where.year = Number(year);
     if (status === "PAID" || status === "PENDING" || status === "LATE") where.status = status;

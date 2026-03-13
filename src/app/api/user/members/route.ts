@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? "20") || 20));
     const q = (searchParams.get("q") ?? "").trim();
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (q) {
       where.OR = [
         { fullName: { contains: q, mode: "insensitive" } },

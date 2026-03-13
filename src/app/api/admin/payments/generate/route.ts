@@ -21,7 +21,6 @@ export async function POST(req: NextRequest) {
       action: "GENERATE",
       entity: "Payment",
       entityId: `${parsed.year}-${parsed.month}`,
-      oldValue: null,
       newValue: result,
     });
 

@@ -10,11 +10,16 @@ export function jsonCreated<T>(data: T) {
 
 export function jsonError(err: unknown) {
   const status =
-    typeof err === "object" && err && "status" in err && typeof (err as any).status === "number"
-      ? (err as any).status
+    typeof err === "object" &&
+    err &&
+    "status" in err &&
+    typeof (err as { status?: unknown }).status === "number"
+      ? (err as { status: number }).status
       : 500;
   const message =
-    typeof err === "object" && err && "message" in err ? String((err as any).message) : "Error";
+    typeof err === "object" && err && "message" in err
+      ? String((err as { message?: unknown }).message)
+      : "Error";
   return NextResponse.json({ error: message }, { status });
 }
 

@@ -36,7 +36,6 @@ export async function POST(req: NextRequest) {
       action: "CREATE",
       entity: "ContributionRule",
       entityId: created.id,
-      oldValue: null,
       newValue: created,
     });
 

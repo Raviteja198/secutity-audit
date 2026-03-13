@@ -1,13 +1,14 @@
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export type AuditInput = {
   adminId: string;
   action: string;
   entity: string;
   entityId?: string | null;
-  oldValue?: unknown;
-  newValue?: unknown;
+  oldValue?: Prisma.InputJsonValue;
+  newValue?: Prisma.InputJsonValue;
 };
 
 export async function writeAuditLog(req: NextRequest, input: AuditInput) {
@@ -23,8 +24,8 @@ export async function writeAuditLog(req: NextRequest, input: AuditInput) {
       action: input.action,
       entity: input.entity,
       entityId: input.entityId ?? null,
-      oldValue: input.oldValue as any,
-      newValue: input.newValue as any,
+      oldValue: input.oldValue ?? Prisma.JsonNull,
+      newValue: input.newValue ?? Prisma.JsonNull,
       ipAddress,
       userAgent,
     },

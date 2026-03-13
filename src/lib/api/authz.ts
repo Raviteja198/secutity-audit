@@ -11,7 +11,7 @@ export async function requireAuth(req: NextRequest): Promise<ApiAuthContext> {
   if (!token?.sub) {
     throw Object.assign(new Error("Unauthorized"), { status: 401 });
   }
-  const role = ((token as any).role ?? "USER") as ApiAuthContext["role"];
+  const role = (token as { role?: ApiAuthContext["role"] }).role ?? "USER";
   return { userId: token.sub, role };
 }
 

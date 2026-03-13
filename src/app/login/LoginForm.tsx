@@ -51,12 +51,13 @@ export function LoginForm() {
               type="email"
               autoComplete="email"
               required
-              className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-900/10"
+              className="w-full rounded-xl border bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-zinc-900/10"
+              // className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-900/10"
               placeholder="admin@example.com"
             />
           </div>
 
-          <div className="space-y-1 color-red-500"> 
+          <div className="space-y-1"> 
             <label className="text-sm font-medium text-zinc-800">Password</label>
             <input
               value={password}

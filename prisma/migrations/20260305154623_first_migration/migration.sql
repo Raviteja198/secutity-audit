@@ -28,21 +28,21 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
-CREATE TABLE "Member" (
-    "id" TEXT NOT NULL,
-    "memberUid" TEXT NOT NULL,
-    "fullName" TEXT NOT NULL,
-    "phone" TEXT,
-    "email" TEXT,
-    "address" TEXT,
-    "joinDate" TIMESTAMP(3) NOT NULL,
-    "exitDate" TIMESTAMP(3),
-    "status" "MemberStatus" NOT NULL DEFAULT 'ACTIVE',
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CREATE TABLE "Member" (
+        "id" TEXT NOT NULL,
+        "memberUid" TEXT NOT NULL,
+        "fullName" TEXT NOT NULL,
+        "phone" TEXT,
+        "email" TEXT,
+        "address" TEXT,
+        "joinDate" TIMESTAMP(3) NOT NULL,
+        "exitDate" TIMESTAMP(3),
+        "status" "MemberStatus" NOT NULL DEFAULT 'ACTIVE',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Member_pkey" PRIMARY KEY ("id")
-);
+        CONSTRAINT "Member_pkey" PRIMARY KEY ("id")
+    );
 
 -- CreateTable
 CREATE TABLE "ContributionRule" (

@@ -5,41 +5,8 @@ import { jsonCreated, jsonError, jsonOk } from "@/lib/api/http";
 import { memberCreateSchema } from "@/lib/validators/members";
 import { writeAuditLog } from "@/lib/audit";
 
-export async function GET(req: NextRequest) {
-  try {
-    await requireAdmin(req);
-    const { searchParams } = new URL(req.url);
-    const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
-    const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? "20") || 20));
-    const q = (searchParams.get("q") ?? "").trim();
-    const status = searchParams.get("status")?.toUpperCase();
 
-    const where: any = {};
-    if (q) {
-      where.OR = [
-        { fullName: { contains: q, mode: "insensitive" } },
-        { memberUid: { contains: q, mode: "insensitive" } },
-        { phone: { contains: q, mode: "insensitive" } },
-        { email: { contains: q, mode: "insensitive" } },
-      ];
-    }
-    if (status === "ACTIVE" || status === "INACTIVE") where.status = status;
 
-    const [items, total] = await Promise.all([
-      prisma.member.findMany({
-        where,
-        orderBy: [{ status: "asc" }, { joinDate: "desc" }],
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      prisma.member.count({ where }),
-    ]);
-
-    return jsonOk({ items, total, page, pageSize });
-  } catch (e) {
-    return jsonError(e);
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -47,9 +14,23 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = memberCreateSchema.parse(body);
 
+    // Get last member
+    const lastMember = await prisma.member.findFirst({
+      orderBy: { createdAt: "desc" },
+    });
+
+    let nextNumber = 1;
+
+    if (lastMember?.memberUid) {
+      const num = parseInt(lastMember.memberUid.split("-")[1]);
+      nextNumber = num + 1;
+    }
+
+    const memberUid = `M-${String(nextNumber).padStart(4, "0")}`;
+
     const created = await prisma.member.create({
       data: {
-        memberUid: parsed.memberUid,
+        memberUid,
         fullName: parsed.fullName,
         phone: parsed.phone,
         email: parsed.email,
@@ -64,7 +45,6 @@ export async function POST(req: NextRequest) {
       action: "CREATE",
       entity: "Member",
       entityId: created.id,
-      oldValue: null,
       newValue: created,
     });
 
@@ -73,4 +53,74 @@ export async function POST(req: NextRequest) {
     return jsonError(e);
   }
 }
+
+
+
+// export async function GET(req: NextRequest) {
+//   try {
+//     await requireAdmin(req);
+//     const { searchParams } = new URL(req.url);
+//     const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
+//     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? "20") || 20));
+//     const q = (searchParams.get("q") ?? "").trim();
+//     const status = searchParams.get("status")?.toUpperCase();
+
+//     const where: Record<string, unknown> = {};
+//     if (q) {
+//       where.OR = [
+//         { fullName: { contains: q, mode: "insensitive" } },
+//         { memberUid: { contains: q, mode: "insensitive" } },
+//         { phone: { contains: q, mode: "insensitive" } },
+//         { email: { contains: q, mode: "insensitive" } },
+//       ];
+//     }
+//     if (status === "ACTIVE" || status === "INACTIVE") where.status = status;
+
+//     const [items, total] = await Promise.all([
+//       prisma.member.findMany({
+//         where,
+//         orderBy: [{ status: "asc" }, { joinDate: "desc" }],
+//         skip: (page - 1) * pageSize,
+//         take: pageSize,
+//       }),
+//       prisma.member.count({ where }),
+//     ]);
+
+//     return jsonOk({ items, total, page, pageSize });
+//   } catch (e) {
+//     return jsonError(e);
+//   }
+// }
+
+// export async function POST(req: NextRequest) {
+//   try {
+//     const ctx = await requireAdmin(req);
+//     const body = await req.json();
+//     const parsed = memberCreateSchema.parse(body);
+
+//     const created = await prisma.member.create({
+//       data: {
+//         memberUid: parsed.memberUid,
+//         fullName: parsed.fullName,
+//         phone: parsed.phone,
+//         email: parsed.email,
+//         address: parsed.address,
+//         joinDate: parsed.joinDate,
+//         status: "ACTIVE",
+//       },
+//     });
+
+//     await writeAuditLog(req, {
+//       adminId: ctx.userId,
+//       action: "CREATE",
+//       entity: "Member",
+//       entityId: created.id,
+//       newValue: created,
+//     });
+
+//     return jsonCreated(created);
+//   } catch (e) {
+//     return jsonError(e);
+//   }
+// }
 

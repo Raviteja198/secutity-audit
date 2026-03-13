@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ paymentId: 
   const { paymentId } = await ctx.params;
   const { bytes, receiptNumber } = await buildReceiptPdf(paymentId);
   const body = Buffer.from(bytes);
-  return new NextResponse(body as any, {
+  return new NextResponse(body, {
     status: 200,
     headers: {
       "content-type": "application/pdf",

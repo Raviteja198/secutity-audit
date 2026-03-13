@@ -30,7 +30,6 @@ export async function POST(req: NextRequest) {
       action: "CREATE",
       entity: "Charity",
       entityId: created.id,
-      oldValue: null,
       newValue: created,
     });
 

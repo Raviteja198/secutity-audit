@@ -28,7 +28,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const role = (token as any).role as string | undefined;
+  const role = (token as { role?: "ADMIN" | "USER" }).role;
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
     if (role !== "ADMIN") {
       if (isApiPath(pathname)) {

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const year = searchParams.get("year");
     const memberId = searchParams.get("memberId");
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (month) where.month = Number(month);
     if (year) where.year = Number(year);
     if (memberId) where.memberId = memberId;

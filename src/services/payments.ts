@@ -7,14 +7,15 @@ function dueDateUtc(year: number, month: number, day: number) {
 
 async function getPaymentDueDay(): Promise<number> {
   const s = await prisma.setting.findUnique({ where: { key: "paymentDueDay" } });
-  const day = (s?.value as any)?.day;
+  const day = (s?.value as unknown as { day?: unknown } | null)?.day;
   if (typeof day === "number" && day >= 1 && day <= 28) return day;
   return 10;
 }
 
 async function nextReceiptNumber(): Promise<string> {
   const prefixSetting = await prisma.setting.findUnique({ where: { key: "receiptPrefix" } });
-  const prefix = (prefixSetting?.value as any)?.prefix ?? "RCP";
+  const prefix =
+    (prefixSetting?.value as unknown as { prefix?: unknown } | null)?.prefix ?? "RCP";
   const date = new Date();
   const y = String(date.getUTCFullYear());
   const m = String(date.getUTCMonth() + 1).padStart(2, "0");

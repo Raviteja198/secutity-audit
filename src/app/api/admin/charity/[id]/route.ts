@@ -46,7 +46,6 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
       entity: "Charity",
       entityId: id,
       oldValue: old,
-      newValue: null,
     });
 
     return jsonOk({ ok: true });
