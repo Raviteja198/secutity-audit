@@ -7,26 +7,106 @@ import { writeAuditLog } from "@/lib/audit";
 
 
 
+/*
+GET MEMBERS
+Used by the table to load members
+*/
+export async function GET(req: NextRequest) {
+  try {
+    await requireAdmin(req);
 
+    const { searchParams } = new URL(req.url);
+
+    const page =
+      Math.max(1, Number(searchParams.get("page") ?? "1")) || 1;
+
+    const pageSize =
+      Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? "20"))) || 20;
+
+    const q = (searchParams.get("q") ?? "").trim();
+
+    const status = searchParams.get("status")?.toUpperCase();
+
+    const where: any = {};
+
+    if (q) {
+      where.OR = [
+        { fullName: { contains: q, mode: "insensitive" } },
+        { memberUid: { contains: q, mode: "insensitive" } },
+        { phone: { contains: q, mode: "insensitive" } },
+        { email: { contains: q, mode: "insensitive" } },
+      ];
+    }
+
+    if (status === "ACTIVE" || status === "INACTIVE") {
+      where.status = status;
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.member.findMany({
+        where,
+         orderBy: {
+      memberUid: "asc",
+    },
+        // orderBy: [
+        //   { status: "asc" },
+        //   { joinDate: "desc" }
+        // ],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+
+      prisma.member.count({ where }),
+    ]);
+
+    return jsonOk({
+      items,
+      total,
+      page,
+      pageSize,
+    });
+
+  } catch (e) {
+    return jsonError(e);
+  }
+}
+
+
+
+/*
+CREATE MEMBER
+Auto generates Member ID
+*/
 export async function POST(req: NextRequest) {
   try {
+
     const ctx = await requireAdmin(req);
+
     const body = await req.json();
+
     const parsed = memberCreateSchema.parse(body);
 
-    // Get last member
+
+
+    // Find last member
     const lastMember = await prisma.member.findFirst({
       orderBy: { createdAt: "desc" },
     });
 
+
+
     let nextNumber = 1;
 
     if (lastMember?.memberUid) {
-      const num = parseInt(lastMember.memberUid.split("-")[1]);
+      const num = parseInt(lastMember.memberUid.split("-")[1] || "0");
       nextNumber = num + 1;
     }
 
+
+
     const memberUid = `M-${String(nextNumber).padStart(4, "0")}`;
+
+
 
     const created = await prisma.member.create({
       data: {
@@ -40,6 +120,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
+
+
     await writeAuditLog(req, {
       adminId: ctx.userId,
       action: "CREATE",
@@ -48,12 +130,14 @@ export async function POST(req: NextRequest) {
       newValue: created,
     });
 
+
+
     return jsonCreated(created);
+
   } catch (e) {
     return jsonError(e);
   }
 }
-
 
 
 // export async function GET(req: NextRequest) {

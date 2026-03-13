@@ -87,9 +87,9 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-zinc-900">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">Contribution rules</h2>
+        <h2 className="text-base font-semibold text-zinc-900">Contribution rules</h2>
         {loading ? <span className="text-sm text-zinc-600">Loading…</span> : null}
       </div>
 
