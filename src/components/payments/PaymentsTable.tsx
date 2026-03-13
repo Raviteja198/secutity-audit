@@ -83,11 +83,11 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
   return (
     <div className="space-y-3">
       {mode === "admin" ? (
-        <details className="rounded-xl border bg-white p-3">
+        <details className="rounded-xl border bg-white p-3 text-zinc-900">
           <summary className="cursor-pointer text-sm font-medium text-zinc-900">
             Generate monthly payments
           </summary>
-          <form onSubmit={generateForMonth} className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+          <form onSubmit={generateForMonth} className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3 text-zinc-900">
             <input
               name="month"
               type="number"
@@ -95,7 +95,7 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
               max={12}
               placeholder="Month"
               required
-              className="rounded-xl border px-3 py-2 text-sm"
+              className="rounded-xl border px-3 py-2 text-sm text-zinc-900"
             />
             <input
               name="year"
@@ -104,7 +104,7 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
               max={3000}
               placeholder="Year"
               required
-              className="rounded-xl border px-3 py-2 text-sm"
+              className="rounded-xl border px-3 py-2 text-sm text-zinc-900"
             />
             <button className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800">
               Generate
@@ -113,7 +113,7 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
         </details>
       ) : null}
 
-      <div className="overflow-x-auto rounded-xl border">
+      <div className="overflow-x-auto rounded-xl border text-zinc-900">
         <table className="min-w-full divide-y">
           <thead className="bg-zinc-50">
             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-600">
