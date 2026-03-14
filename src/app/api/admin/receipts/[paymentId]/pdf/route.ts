@@ -4,6 +4,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api/authz";
 import { buildReceiptPdf } from "@/services/receipts";
 
+function getErrorStatus(error: unknown) {
+  if (typeof error === "object" && error !== null && "status" in error) {
+    const maybeStatus = (error as { status?: unknown }).status;
+    if (typeof maybeStatus === "number") return maybeStatus;
+  }
+  return 500;
+}
+
 export async function GET(req: NextRequest, ctx: { params: Promise<{ paymentId: string }> }) {
   try {
     await requireAdmin(req);
@@ -20,7 +28,6 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ paymentId: 
     });
   } catch (e) {
     console.error("Error generating receipt PDF:", e);
-    return NextResponse.json({ error: (e as Error)?.message ?? "Internal Server Error" }, { status: (e as any).status ?? 500 });
+    return NextResponse.json({ error: (e as Error)?.message ?? "Internal Server Error" }, { status: getErrorStatus(e) });
   }
 }
-

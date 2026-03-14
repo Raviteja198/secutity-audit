@@ -26,6 +26,10 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
   const [contribution, setContribution] = useState<ContributionRule[]>([]);
   const [penalty, setPenalty] = useState<PenaltyRule[]>([]);
   const [loading, setLoading] = useState(false);
+  const [creatingContribution, setCreatingContribution] = useState(false);
+  const [creatingPenalty, setCreatingPenalty] = useState(false);
+  const [contributionError, setContributionError] = useState<string | null>(null);
+  const [penaltyError, setPenaltyError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -48,42 +52,62 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
 
   async function createContribution(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const amount = Number(form.get("amount") ?? 0);
-    const effectiveFromMonth = Number(form.get("month") ?? 0);
-    const effectiveFromYear = Number(form.get("year") ?? 0);
-    const res = await fetch(`${base}/contribution`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        amountPaise: Math.round(amount * 100),
-        effectiveFromMonth,
-        effectiveFromYear,
-      }),
-    });
-    const json = await res.json();
-    if (!res.ok) return alert(json?.error ?? "Failed");
-    (e.currentTarget as HTMLFormElement).reset();
-    await load();
+    setContributionError(null);
+    setCreatingContribution(true);
+
+    try {
+      const form = new FormData(e.currentTarget);
+      const amount = Number(form.get("amount") ?? 0);
+      const effectiveFromMonth = Number(form.get("month") ?? 0);
+      const effectiveFromYear = Number(form.get("year") ?? 0);
+      const res = await fetch(`${base}/contribution`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          amountPaise: Math.round(amount * 100),
+          effectiveFromMonth,
+          effectiveFromYear,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setContributionError(json?.error ?? "Failed to create contribution rule.");
+        return;
+      }
+      (e.currentTarget as HTMLFormElement).reset();
+      await load();
+    } finally {
+      setCreatingContribution(false);
+    }
   }
 
   async function createPenalty(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const amount = Number(form.get("amount") ?? 0);
-    const effectiveFrom = String(form.get("effectiveFrom") ?? "");
-    const res = await fetch(`${base}/penalty`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        amountPaise: Math.round(amount * 100),
-        effectiveFrom: new Date(effectiveFrom),
-      }),
-    });
-    const json = await res.json();
-    if (!res.ok) return alert(json?.error ?? "Failed");
-    (e.currentTarget as HTMLFormElement).reset();
-    await load();
+    setPenaltyError(null);
+    setCreatingPenalty(true);
+
+    try {
+      const form = new FormData(e.currentTarget);
+      const amount = Number(form.get("amount") ?? 0);
+      const effectiveFrom = String(form.get("effectiveFrom") ?? "");
+      const res = await fetch(`${base}/penalty`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          amountPaise: Math.round(amount * 100),
+          effectiveFrom: new Date(effectiveFrom),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setPenaltyError(json?.error ?? "Failed to create penalty rule.");
+        return;
+      }
+      (e.currentTarget as HTMLFormElement).reset();
+      await load();
+    } finally {
+      setCreatingPenalty(false);
+    }
   }
 
   return (
@@ -133,9 +157,18 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
               className="rounded-xl border px-3 py-2 text-sm"
             />
           </div>
-          <button className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800">
-            Add rule
+          <button
+            type="submit"
+            disabled={creatingContribution}
+            className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+          >
+            {creatingContribution ? "Saving..." : "Add rule"}
           </button>
+          {contributionError ? (
+            <div className="md:col-span-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {contributionError}
+            </div>
+          ) : null}
         </form>
       ) : null}
 
@@ -197,9 +230,18 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
               className="rounded-xl border px-3 py-2 text-sm"
             />
           </div>
-          <button className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800">
-            Add rule
+          <button
+            type="submit"
+            disabled={creatingPenalty}
+            className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+          >
+            {creatingPenalty ? "Saving..." : "Add rule"}
           </button>
+          {penaltyError ? (
+            <div className="md:col-span-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {penaltyError}
+            </div>
+          ) : null}
         </form>
       ) : null}
 
@@ -233,4 +275,3 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
     </div>
   );
 }
-

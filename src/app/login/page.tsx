@@ -36,9 +36,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-zinc-900">Sign in</h1>
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="app-shell w-full max-w-md rounded-2xl p-6">
+        <p className="text-xs uppercase tracking-[0.2em] text-indigo-500">Welcome Back</p>
+        <h1 className="mt-1 text-xl font-semibold text-zinc-900">Sign in</h1>
         <p className="mt-1 text-sm text-zinc-600">
           Use your email and password to access the group ledger.
         </p>
@@ -53,7 +54,7 @@ export default function LoginPage() {
               autoComplete="email"
               required
               // className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-900/10"
-              className="w-full rounded-xl border bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-zinc-900/10"
+              className="w-full rounded-xl border border-zinc-200 bg-white/95 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-indigo-300"
               placeholder="admin@example.com"
             />
           </div>
@@ -67,7 +68,7 @@ export default function LoginPage() {
               autoComplete="current-password"
               required
               // className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-900/10"
-              className="w-full rounded-xl border bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-zinc-900/10"
+              className="w-full rounded-xl border border-zinc-200 bg-white/95 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-indigo-300"
               placeholder="••••••••"
             />
           </div>
@@ -81,7 +82,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-medium text-white shadow hover:opacity-95 disabled:opacity-60"
           >
             {loading ? "Signing in..." : "Sign in"}
           </button>

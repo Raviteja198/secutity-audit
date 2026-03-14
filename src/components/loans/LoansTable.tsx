@@ -42,6 +42,8 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
   const [loanDetails, setLoanDetails] = useState<LoanWithDetails | null>(null);
   const [historyLoan, setHistoryLoan] = useState<Loan | null>(null);
   const [repayments, setRepayments] = useState<LoanRepayment[]>([]);
+  const [creatingLoan, setCreatingLoan] = useState(false);
+  const [createLoanError, setCreateLoanError] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch(base, { cache: "no-store" });
@@ -72,23 +74,33 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
 
   async function create(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const res = await fetch(base, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        memberId: String(fd.get("memberId")),
-        principalPaise: Math.round(Number(fd.get("principal") ?? 0) * 100),
-        monthlyRateBps: Math.round(Number(fd.get("ratePercent") ?? 0) * 100),
-        durationMonths: Number(fd.get("durationMonths") ?? 0),
-        startDate: new Date(String(fd.get("startDate") ?? "")),
-      }),
-    });
-    const json = await res.json();
-    if (!res.ok) return alert(json?.error ?? "Failed");
-    (e.currentTarget as HTMLFormElement).reset();
-    (e.currentTarget.closest("details") as HTMLDetailsElement).open = false; // Close the details element
-    await load();
+    setCreateLoanError(null);
+    setCreatingLoan(true);
+
+    try {
+      const fd = new FormData(e.currentTarget);
+      const res = await fetch(base, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          memberId: String(fd.get("memberId")),
+          principalPaise: Math.round(Number(fd.get("principal") ?? 0) * 100),
+          monthlyRateBps: Math.round(Number(fd.get("ratePercent") ?? 0) * 100),
+          durationMonths: Number(fd.get("durationMonths") ?? 0),
+          startDate: new Date(String(fd.get("startDate") ?? "")),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setCreateLoanError(json?.error ?? "Failed to create loan.");
+        return;
+      }
+      (e.currentTarget as HTMLFormElement).reset();
+      (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
+      await load();
+    } finally {
+      setCreatingLoan(false);
+    }
   }
 
   async function approve(id: string) {
@@ -162,9 +174,18 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
               <label htmlFor="loanStartDate" className="text-sm font-medium text-zinc-800">Start Date</label>
               <input id="loanStartDate" name="startDate" type="date" required className="rounded-xl border px-3 py-2 text-sm" />
             </div>
-            <button className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 md:col-span-3">
-              Create
+            <button
+              type="submit"
+              disabled={creatingLoan}
+              className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 md:col-span-3"
+            >
+              {creatingLoan ? "Creating loan..." : "Create"}
             </button>
+            {createLoanError ? (
+              <div className="md:col-span-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {createLoanError}
+              </div>
+            ) : null}
             <div className="md:col-span-3 text-xs text-zinc-600">
               Note: Loans require admin approval before becoming active.
             </div>
@@ -383,4 +404,3 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 type DashboardData = {
@@ -25,23 +25,32 @@ export function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const loadData = () => {
-    setLoading(true);
-    fetch(`/api/admin/dashboard?month=${selectedMonth}&year=${selectedYear}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch");
-        return res.json();
-      })
-      .then((json) => {
-        setData(json);
-      })
-      .catch((err) => console.error("Dashboard fetch error:", err))
-      .finally(() => setLoading(false));
-  };
+  const query = useMemo(
+    () => `/api/admin/dashboard?month=${selectedMonth}&year=${selectedYear}`,
+    [selectedMonth, selectedYear],
+  );
 
   useEffect(() => {
+    let active = true;
+
+    async function loadData() {
+      try {
+        const res = await fetch(query);
+        if (!res.ok) throw new Error("Failed to fetch");
+        const json = (await res.json()) as DashboardData;
+        if (active) setData(json);
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
     loadData();
-  }, [selectedMonth, selectedYear]);
+    return () => {
+      active = false;
+    };
+  }, [query]);
 
   if (loading) {
     return (
@@ -72,7 +81,10 @@ export function Dashboard() {
             <select
               id="monthSelect"
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              onChange={(e) => {
+                setLoading(true);
+                setSelectedMonth(Number(e.target.value));
+              }}
               className="rounded border px-3 py-2 text-sm"
             >
               {Array.from({ length: 12 }, (_, i) => (
@@ -88,7 +100,10 @@ export function Dashboard() {
             <select
               id="yearSelect"
               value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              onChange={(e) => {
+                setLoading(true);
+                setSelectedYear(Number(e.target.value));
+              }}
               className="rounded border px-3 py-2 text-sm"
             >
               {Array.from({ length: 5 }, (_, i) => {
@@ -106,49 +121,49 @@ export function Dashboard() {
 
       {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border">
+        <div className="lux-card p-4 rounded-xl">
           <div className="text-sm text-zinc-500">Total Members</div>
           <div className="text-2xl font-bold text-zinc-900">{data.totalMembers}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border">
+        <div className="lux-card p-4 rounded-xl">
           <div className="text-sm text-zinc-500">Monthly Collections</div>
           <div className="text-2xl font-bold text-zinc-900">{fmt(data.monthlyCollections)}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border">
+        <div className="lux-card p-4 rounded-xl">
           <div className="text-sm text-zinc-500">Total Collections</div>
           <div className="text-2xl font-bold text-zinc-900">{fmt(data.totalCollections)}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border">
+        <div className="lux-card p-4 rounded-xl">
           <div className="text-sm text-zinc-500">Pending Payments</div>
           <div className="text-2xl font-bold text-zinc-900">{data.pendingPayments}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border">
+        <div className="lux-card p-4 rounded-xl">
           <div className="text-sm text-zinc-500">Overdue Loans</div>
           <div className="text-2xl font-bold text-zinc-900">{data.overdueLoans}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border">
+        <div className="lux-card p-4 rounded-xl">
           <div className="text-sm text-zinc-500">Active Loans</div>
           <div className="text-2xl font-bold text-zinc-900">{data.activeLoans}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border">
+        <div className="lux-card p-4 rounded-xl">
           <div className="text-sm text-zinc-500">Total Charity</div>
           <div className="text-2xl font-bold text-zinc-900">{fmt(data.totalCharity)}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border">
+        <div className="lux-card p-4 rounded-xl">
           <div className="text-sm text-zinc-500">Fund Balance</div>
           <div className="text-2xl font-bold text-zinc-900">{fmt(data.fundBalance)}</div>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="bg-white p-6 rounded-xl border">
+      <div className="lux-card p-6 rounded-xl">
         <h2 className="text-lg font-semibold text-zinc-900 mb-4">Monthly Collections Trend</h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={data.monthlyTrend}>
@@ -162,7 +177,7 @@ export function Dashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white p-6 rounded-xl border">
+      <div className="lux-card p-6 rounded-xl">
         <h2 className="text-lg font-semibold text-zinc-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <a

@@ -7,17 +7,26 @@ type NavItem = { href: string; label: string };
 
 function Nav({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
+
+  const isActive = (href: string) => {
+    const isRootSection = href === "/admin" || href === "/user";
+    if (isRootSection) return pathname === href;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
   return (
     <nav className="space-y-1">
       {items.map((i) => {
-        const active = pathname === i.href || pathname.startsWith(i.href + "/");
+        const active = isActive(i.href);
         return (
           <Link
             key={i.href}
             href={i.href}
             className={[
-              "block rounded-lg px-3 py-2 text-sm font-medium",
-              active ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-100",
+              "block rounded-xl px-3 py-2 text-sm font-medium transition",
+              active
+                ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow"
+                : "text-zinc-700 hover:bg-white/70 hover:text-zinc-900",
             ].join(" ")}
           >
             {i.label}
@@ -31,7 +40,7 @@ function Nav({ items }: { items: NavItem[] }) {
 export function AdminSidebar() {
   return (
     <div className="p-3">
-      <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <div className="mb-2 rounded-xl bg-gradient-to-r from-indigo-100 via-violet-100 to-cyan-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
         Admin
       </div>
       <Nav
@@ -53,7 +62,7 @@ export function AdminSidebar() {
 export function UserSidebar() {
   return (
     <div className="p-3">
-      <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <div className="mb-2 rounded-xl bg-gradient-to-r from-indigo-100 via-violet-100 to-cyan-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
         User
       </div>
       <Nav
@@ -70,4 +79,3 @@ export function UserSidebar() {
     </div>
   );
 }
-
