@@ -19,6 +19,8 @@ function fmt(paise: number) {
 export function CharityTable({ mode }: { mode: "admin" | "user" }) {
   const base = mode === "admin" ? "/api/admin/charity" : "/api/user/charity";
   const [items, setItems] = useState<Charity[]>([]);
+  const [creatingCharity, setCreatingCharity] = useState(false);
+  const [createCharityError, setCreateCharityError] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch(base, { cache: "no-store" });
@@ -33,25 +35,34 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
 
   async function create(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const payload = {
-      title: String(fd.get("title") ?? ""),
-      beneficiary: String(fd.get("beneficiary") ?? ""),
-      purpose: String(fd.get("purpose") ?? "") || undefined,
-      amountPaise: Math.round(Number(fd.get("amount") ?? 0) * 100),
-      date: new Date(String(fd.get("date") ?? "")),
-      imageUrl: String(fd.get("imageUrl") ?? "") || undefined,
-    };
-    const res = await fetch(base, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const json = await res.json();
-    if (!res.ok) return alert(json?.error ?? "Failed");
-    (e.currentTarget as HTMLFormElement).reset();
-    (e.currentTarget.closest("details") as HTMLDetailsElement).open = false; // Close the details element
-    await load();
+    setCreateCharityError(null);
+    setCreatingCharity(true);
+    try {
+      const fd = new FormData(e.currentTarget);
+      const payload = {
+        title: String(fd.get("title") ?? ""),
+        beneficiary: String(fd.get("beneficiary") ?? ""),
+        purpose: String(fd.get("purpose") ?? "") || undefined,
+        amountPaise: Math.round(Number(fd.get("amount") ?? 0) * 100),
+        date: new Date(String(fd.get("date") ?? "")),
+        imageUrl: String(fd.get("imageUrl") ?? "") || undefined,
+      };
+      const res = await fetch(base, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setCreateCharityError(json?.error ?? "Failed to create charity entry.");
+        return;
+      }
+      (e.currentTarget as HTMLFormElement).reset();
+      (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
+      await load();
+    } finally {
+      setCreatingCharity(false);
+    }
   }
 
   return (
@@ -92,9 +103,18 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
               <label htmlFor="charityImageUrl" className="text-sm font-medium text-zinc-800">Image Link (optional)</label>
               <input id="charityImageUrl" name="imageUrl" placeholder="Image link (optional)" className="rounded-xl border px-3 py-2 text-sm md:col-span-3" />
             </div>
-            <button className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 md:col-span-3">
-              Create
+            <button
+              type="submit"
+              disabled={creatingCharity}
+              className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 md:col-span-3"
+            >
+              {creatingCharity ? "Creating entry..." : "Create"}
             </button>
+            {createCharityError ? (
+              <div className="md:col-span-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {createCharityError}
+              </div>
+            ) : null}
           </form>
         </details>
       ) : null}
@@ -141,4 +161,3 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
     </div>
   );
 }
-

@@ -1,11 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 export async function getFundBalance() {
   const fund = await prisma.fund.findFirst();
   return fund?.balance ?? 0;
 }
 
-export async function updateFundBalance(amount: number, tx?: any) {
+export async function updateFundBalance(amount: number, tx?: Prisma.TransactionClient) {
   const prismaClient = tx || prisma;
   const fund = await prismaClient.fund.findFirst();
   if (!fund) {
@@ -45,7 +46,7 @@ export async function recordTransaction(input: {
   charityId?: string;
   repaymentId?: string;
   createdById: string;
-}, tx?: any) {
+}, tx?: Prisma.TransactionClient) {
   const prismaClient = tx || prisma;
   await updateFundBalance(input.amount, tx);
   await prismaClient.transaction.create({

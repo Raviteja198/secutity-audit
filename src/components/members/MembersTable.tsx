@@ -34,6 +34,8 @@ export function MembersTable({ mode }: { mode: "admin" | "user" }) {
   const [total, setTotal] = useState(0);
 
   const [loading, setLoading] = useState(false);
+  const [creatingMember, setCreatingMember] = useState(false);
+  const [createMemberError, setCreateMemberError] = useState<string | null>(null);
 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
 
@@ -75,35 +77,40 @@ export function MembersTable({ mode }: { mode: "admin" | "user" }) {
 
 async function createMember(e: React.FormEvent<HTMLFormElement>) {
   e.preventDefault();
+  setCreateMemberError(null);
+  setCreatingMember(true);
 
-  const formElement = e.currentTarget;   // store form reference
+  const formElement = e.currentTarget;
 
-  const form = new FormData(formElement);
-  const payload = Object.fromEntries(form.entries());
+  try {
+    const form = new FormData(formElement);
+    const payload = Object.fromEntries(form.entries());
 
-  const res = await fetch(apiBase, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      ...payload,
-      joinDate: payload.joinDate
-        ? new Date(String(payload.joinDate))
-        : new Date(),
-    }),
-  });
+    const res = await fetch(apiBase, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        ...payload,
+        joinDate: payload.joinDate
+          ? new Date(String(payload.joinDate))
+          : new Date(),
+      }),
+    });
 
-  const json = await res.json();
+    const json = await res.json();
 
-  if (!res.ok) {
-    alert(json?.error ?? "Failed to create");
-    return;
-  }
+    if (!res.ok) {
+      setCreateMemberError(json?.error ?? "Failed to create member.");
+      return;
+    }
 
-  formElement.reset();
-
+    formElement.reset();
     setPage(1);
     await load();
+  } finally {
+    setCreatingMember(false);
   }
+}
 
   async function updateMember(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -228,10 +235,19 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
             </div>
 
             <div className="md:col-span-2">
-              <button className="rounded-lg bg-zinc-900 px-3 py-2 text-white">
-                Create Member
+              <button
+                type="submit"
+                disabled={creatingMember}
+                className="rounded-lg bg-zinc-900 px-3 py-2 text-white disabled:opacity-60"
+              >
+                {creatingMember ? "Creating member..." : "Create Member"}
               </button>
             </div>
+            {createMemberError ? (
+              <div className="md:col-span-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {createMemberError}
+              </div>
+            ) : null}
           </form>
         </details>
       )}
@@ -644,4 +660,3 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
 //     </div>
 //   );
 // }
-
