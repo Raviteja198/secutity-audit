@@ -7,10 +7,17 @@ type NavItem = { href: string; label: string };
 
 function Nav({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
+
+  const isActive = (href: string) => {
+    const isRootSection = href === "/admin" || href === "/user";
+    if (isRootSection) return pathname === href;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
   return (
     <nav className="space-y-1">
       {items.map((i) => {
-        const active = pathname === i.href || pathname.startsWith(i.href + "/");
+        const active = isActive(i.href);
         return (
           <Link
             key={i.href}
