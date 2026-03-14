@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getContributionRuleForMonth, getPenaltyRuleForDate } from "@/services/rules";
+import { recordTransaction } from "@/services/fund";
 
 function dueDateUtc(year: number, month: number, day: number) {
   return new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
@@ -77,27 +78,40 @@ export async function recordPayment(input: {
   const penaltyAmountPaise = isLate ? penaltyRule?.amountPaise ?? payment.penaltyAmountPaise : 0;
   const totalAmountPaise = payment.baseAmountPaise + penaltyAmountPaise;
 
-  const updated = await prisma.payment.update({
-    where: { id: payment.id },
-    data: {
-      penaltyAmountPaise,
-      totalAmountPaise,
-      status: isLate ? "LATE" : "PAID",
-      paymentMethod: input.method,
-      paidAt,
-      recordedById: input.recordedById,
-    },
+  const updated = await prisma.$transaction(async (tx) => {
+    const u = await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        penaltyAmountPaise,
+        totalAmountPaise,
+        status: isLate ? "LATE" : "PAID",
+        paymentMethod: input.method,
+        paidAt,
+        recordedById: input.recordedById,
+      },
+    });
+
+    const receipt =
+      payment.receipt ??
+      (await tx.receipt.create({
+        data: {
+          paymentId: payment.id,
+          receiptNumber: await nextReceiptNumber(),
+        },
+      }));
+
+    // Record fund transaction for payment received
+    await recordTransaction({
+      type: "PAYMENT_RECEIVED",
+      amount: totalAmountPaise,
+      description: `Payment received for ${totalAmountPaise} paise`,
+      paymentId: payment.id,
+      createdById: input.recordedById,
+    }, tx);
+
+    return { payment: u, receipt };
   });
 
-  const receipt =
-    payment.receipt ??
-    (await prisma.receipt.create({
-      data: {
-        paymentId: payment.id,
-        receiptNumber: await nextReceiptNumber(),
-      },
-    }));
-
-  return { payment: updated, receipt };
+  return updated;
 }
 

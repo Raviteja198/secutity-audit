@@ -5,11 +5,29 @@ import { useEffect, useState } from "react";
 type Loan = {
   id: string;
   principalPaise: number;
+  remainingPaise: number;
   monthlyRateBps: number;
   durationMonths: number;
   startDate: string;
   status: "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "DEFAULTED";
   member: { id: string; memberUid: string; fullName: string };
+};
+
+type LoanWithDetails = Loan & {
+  installments?: {
+    id: string;
+    dueDate: string;
+    interestDuePaise: number;
+    principalDuePaise: number;
+    amountPaidPaise: number;
+  }[];
+};
+
+type LoanRepayment = {
+  id: string;
+  amountPaise: number;
+  paidAt: string;
+  recordedBy: { name: string };
 };
 
 function fmt(paise: number) {
@@ -19,6 +37,11 @@ function fmt(paise: number) {
 export function LoansTable({ mode }: { mode: "admin" | "user" }) {
   const base = mode === "admin" ? "/api/admin/loans" : "/api/user/loans";
   const [items, setItems] = useState<Loan[]>([]);
+  const [members, setMembers] = useState<{ id: string; memberUid: string; fullName: string }[]>([]);
+  const [repayingLoan, setRepayingLoan] = useState<Loan | null>(null);
+  const [loanDetails, setLoanDetails] = useState<LoanWithDetails | null>(null);
+  const [historyLoan, setHistoryLoan] = useState<Loan | null>(null);
+  const [repayments, setRepayments] = useState<LoanRepayment[]>([]);
 
   async function load() {
     const res = await fetch(base, { cache: "no-store" });
@@ -26,8 +49,24 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
     setItems(json.items ?? []);
   }
 
+  async function loadMembers() {
+    const res = await fetch("/api/admin/members", { cache: "no-store" });
+    const json = await res.json();
+    setMembers(json.items ?? []);
+  }
+
+  async function loadRepayments(loanId: string) {
+    const apiBase = mode === "admin" ? "/api/admin" : "/api/user";
+    const res = await fetch(`${apiBase}/loans/${loanId}/repayments`, { cache: "no-store" });
+    const json = await res.json();
+    setRepayments(json.repayments ?? []);
+  }
+
   useEffect(() => {
     void load();
+    if (mode === "admin") {
+      void loadMembers();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -48,6 +87,7 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
     const json = await res.json();
     if (!res.ok) return alert(json?.error ?? "Failed");
     (e.currentTarget as HTMLFormElement).reset();
+    (e.currentTarget.closest("details") as HTMLDetailsElement).open = false; // Close the details element
     await load();
   }
 
@@ -58,22 +98,75 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
     await load();
   }
 
+  async function startRepay(loan: Loan) {
+    setRepayingLoan(loan);
+    // Fetch loan details with installments
+    const apiBase = mode === "admin" ? "/api/admin" : "/api/user";
+    const res = await fetch(`${apiBase}/loans/${loan.id}/details`, { cache: "no-store" });
+    const json = await res.json();
+    setLoanDetails(json.loan ?? null);
+  }
+
+  async function showHistory(loan: Loan) {
+    setHistoryLoan(loan);
+    await loadRepayments(loan.id);
+  }
+
+  async function repay(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!repayingLoan) return;
+    const fd = new FormData(e.currentTarget);
+    const amount = Number(fd.get("amount") ?? 0);
+    const res = await fetch(`/api/admin/loans/${repayingLoan.id}/repay`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ amountPaise: Math.round(amount * 100) }),
+    });
+    const json = await res.json();
+    if (!res.ok) return alert(json?.error ?? "Failed");
+    setRepayingLoan(null);
+    setLoanDetails(null);
+    await load();
+  }
+
   return (
     <div className="space-y-3">
       {mode === "admin" ? (
         <details className="rounded-xl border bg-white p-3">
           <summary className="cursor-pointer text-sm font-medium text-zinc-900">Create loan</summary>
           <form onSubmit={create} className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
-            <input name="memberId" placeholder="Member ID (internal DB id)" required className="rounded-xl border px-3 py-2 text-sm" />
-            <input name="principal" type="number" step="0.01" placeholder="Principal (₹)" required className="rounded-xl border px-3 py-2 text-sm" />
-            <input name="ratePercent" type="number" step="0.01" placeholder="Monthly rate (%)" required className="rounded-xl border px-3 py-2 text-sm" />
-            <input name="durationMonths" type="number" min={2} max={240} placeholder="Duration (months)" required className="rounded-xl border px-3 py-2 text-sm" />
-            <input name="startDate" type="date" required className="rounded-xl border px-3 py-2 text-sm" />
+            <div className="space-y-1">
+              <label htmlFor="loanMember" className="text-sm font-medium text-zinc-800">Select Member</label>
+              <select id="loanMember" name="memberId" required className="rounded-xl border px-3 py-2 text-sm">
+                <option value="">Select Member</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.fullName} ({m.memberUid})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="loanPrincipal" className="text-sm font-medium text-zinc-800">Principal (₹)</label>
+              <input id="loanPrincipal" name="principal" type="number" step="0.01" placeholder="Principal (₹)" required className="rounded-xl border px-3 py-2 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="loanRate" className="text-sm font-medium text-zinc-800">Monthly Rate (%)</label>
+              <input id="loanRate" name="ratePercent" type="number" step="0.01" placeholder="Monthly rate (%)" required className="rounded-xl border px-3 py-2 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="loanDuration" className="text-sm font-medium text-zinc-800">Duration (Months)</label>
+              <input id="loanDuration" name="durationMonths" type="number" min={2} max={240} placeholder="Duration (months)" required className="rounded-xl border px-3 py-2 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="loanStartDate" className="text-sm font-medium text-zinc-800">Start Date</label>
+              <input id="loanStartDate" name="startDate" type="date" required className="rounded-xl border px-3 py-2 text-sm" />
+            </div>
             <button className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 md:col-span-3">
               Create
             </button>
             <div className="md:col-span-3 text-xs text-zinc-600">
-              Note: For now, enter the Member database `id`. A member picker UI is the next polish item.
+              Note: Loans require admin approval before becoming active.
             </div>
           </form>
         </details>
@@ -84,12 +177,13 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
           <thead className="bg-zinc-50">
             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-600">
               <th className="px-3 py-2">Member</th>
-              <th className="px-3 py-2">Principal</th>
+              <th className="px-3 py-2">Amount</th>
               <th className="px-3 py-2">Rate</th>
               <th className="px-3 py-2">Duration</th>
               <th className="px-3 py-2">Start</th>
               <th className="px-3 py-2">Status</th>
               {mode === "admin" ? <th className="px-3 py-2">Actions</th> : null}
+              <th className="px-3 py-2">History</th>
             </tr>
           </thead>
           <tbody className="divide-y bg-white text-sm">
@@ -99,7 +193,7 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
                   <div className="font-medium text-zinc-900">{l.member.fullName}</div>
                   <div className="text-xs text-zinc-600">{l.member.memberUid}</div>
                 </td>
-                <td className="px-3 py-2">{fmt(l.principalPaise)}</td>
+                <td className="px-3 py-2">{fmt(l.status === "ACTIVE" ? l.remainingPaise : l.principalPaise)}</td>
                 <td className="px-3 py-2">{(l.monthlyRateBps / 100).toFixed(2)}%</td>
                 <td className="px-3 py-2">{l.durationMonths}</td>
                 <td className="px-3 py-2">{new Date(l.startDate).toLocaleDateString()}</td>
@@ -113,16 +207,31 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
                       >
                         Approve & schedule
                       </button>
+                    ) : l.status === "ACTIVE" ? (
+                      <button
+                        onClick={() => void startRepay(l)}
+                        className="rounded-lg border px-2 py-1 text-xs hover:bg-zinc-50"
+                      >
+                        Repay
+                      </button>
                     ) : (
                       "-"
                     )}
                   </td>
                 ) : null}
+                <td className="px-3 py-2">
+                  <button
+                    onClick={() => void showHistory(l)}
+                    className="rounded-lg border px-2 py-1 text-xs hover:bg-zinc-50"
+                  >
+                    View History
+                  </button>
+                </td>
               </tr>
             ))}
             {items.length === 0 ? (
               <tr>
-                <td className="px-3 py-3 text-zinc-600" colSpan={mode === "admin" ? 7 : 6}>
+                <td className="px-3 py-3 text-zinc-600" colSpan={mode === "admin" ? 8 : 7}>
                   No loans yet.
                 </td>
               </tr>
@@ -130,6 +239,147 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
           </tbody>
         </table>
       </div>
+
+      {historyLoan && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+          <div className="w-full max-w-2xl rounded-xl bg-white p-6 space-y-4 text-zinc-900 shadow-xl max-h-[80vh] overflow-y-auto">
+            <h2 className="text-lg font-semibold">Repayment History</h2>
+            <p className="text-sm text-zinc-600">
+              Loan for {historyLoan.member.fullName} ({historyLoan.member.memberUid})
+            </p>
+            {repayments.length === 0 ? (
+              <p className="text-sm text-zinc-600">No repayments recorded yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {repayments.map((r) => (
+                  <div key={r.id} className="flex justify-between items-center p-3 bg-zinc-50 rounded-lg">
+                    <div>
+                      <div className="font-medium">{fmt(r.amountPaise)}</div>
+                      <div className="text-xs text-zinc-600">
+                        Paid on {new Date(r.paidAt).toLocaleDateString()} at {new Date(r.paidAt).toLocaleTimeString()}
+                      </div>
+                    </div>
+                    <div className="text-xs text-zinc-600">Recorded by {r.recordedBy.name}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-end">
+              <button
+                onClick={() => setHistoryLoan(null)}
+                className="rounded-lg border px-3 py-2 text-sm hover:bg-zinc-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {repayingLoan && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 space-y-4 text-zinc-900 shadow-xl">
+            <h2 className="text-lg font-semibold">Record Loan Repayment</h2>
+            <div className="space-y-3">
+              <div className="p-3 bg-zinc-50 rounded-lg">
+                <div className="text-sm font-medium">Loan Details</div>
+                <div className="text-sm text-zinc-600">
+                  Member: {repayingLoan.member.fullName} ({repayingLoan.member.memberUid})
+                </div>
+                <div className="text-sm text-zinc-600">
+                  Principal: {fmt(repayingLoan.principalPaise)}
+                </div>
+                <div className="text-sm text-zinc-600">
+                  Rate: {(repayingLoan.monthlyRateBps / 100).toFixed(2)}% per month
+                </div>
+                <div className="text-sm text-zinc-600">
+                  Duration: {repayingLoan.durationMonths} months
+                </div>
+                <div className="text-sm text-zinc-600">
+                  Start Date: {new Date(repayingLoan.startDate).toLocaleDateString()}
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <div className="text-sm font-medium text-blue-900">Current Status (as of {new Date().toLocaleDateString()})</div>
+                <div className="text-lg font-semibold text-blue-900">
+                  Outstanding Balance: {fmt(repayingLoan.remainingPaise)}
+                </div>
+                <div className="text-xs text-blue-700 mt-1">
+                  This is the total amount needed to fully repay the loan today, including all accrued interest.
+                </div>
+              </div>
+
+              {loanDetails?.installments && (
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <div className="text-sm font-medium text-green-900">Next Payment Due</div>
+                  {(() => {
+                    const today = new Date();
+                    const nextInstallment = loanDetails.installments.find(inst =>
+                      new Date(inst.dueDate) > today && inst.amountPaidPaise < (inst.interestDuePaise + inst.principalDuePaise)
+                    );
+                    if (nextInstallment) {
+                      const dueAmount = nextInstallment.interestDuePaise + nextInstallment.principalDuePaise - nextInstallment.amountPaidPaise;
+                      return (
+                        <div>
+                          <div className="text-lg font-semibold text-green-900">
+                            {fmt(dueAmount)}
+                          </div>
+                          <div className="text-xs text-green-700">
+                            Due on {new Date(nextInstallment.dueDate).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-green-700">
+                            Interest: {fmt(nextInstallment.interestDuePaise)}, Principal: {fmt(nextInstallment.principalDuePaise)}
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="text-sm text-green-700">
+                          No upcoming payments - loan may be fully paid or overdue.
+                        </div>
+                      );
+                    }
+                  })()}
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={repay} className="space-y-3">
+              <div className="space-y-1">
+                <label htmlFor="repayAmount" className="text-sm font-medium text-zinc-800">Repayment Amount (₹)</label>
+                <input
+                  id="repayAmount"
+                  name="amount"
+                  type="number"
+                  step="0.01"
+                  placeholder="Amount"
+                  required
+                  className="w-full rounded border px-3 py-2"
+                />
+                <div className="text-xs text-zinc-600">
+                  Enter the amount the member is paying today.
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRepayingLoan(null);
+                    setLoanDetails(null);
+                  }}
+                  className="flex-1 rounded-lg border px-3 py-2 text-sm hover:bg-zinc-50"
+                >
+                  Cancel
+                </button>
+                <button className="flex-1 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800">
+                  Record Repayment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

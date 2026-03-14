@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Member = {
   id: string;
@@ -34,7 +34,6 @@ export function MembersTable({ mode }: { mode: "admin" | "user" }) {
   const [total, setTotal] = useState(0);
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
 
@@ -45,9 +44,8 @@ export function MembersTable({ mode }: { mode: "admin" | "user" }) {
     [total, pageSize]
   );
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
 
     try {
       const url = new URL(apiBase, window.location.origin);
@@ -65,15 +63,15 @@ export function MembersTable({ mode }: { mode: "admin" | "user" }) {
       setItems(json.items);
       setTotal(json.total);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
+      console.error(e);
     } finally {
       setLoading(false);
     }
-  }
+  }, [apiBase, page, pageSize, q]);
 
   useEffect(() => {
     void load();
-  }, [page]);
+  }, [load]);
 
 async function createMember(e: React.FormEvent<HTMLFormElement>) {
   e.preventDefault();
@@ -180,11 +178,15 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
 
       {/* SEARCH */}
       <div className="flex gap-2">
-        <Input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search member..."
-        />
+        <div className="space-y-1 flex-1">
+          <label htmlFor="searchMember" className="text-sm font-medium text-zinc-800">Search Member</label>
+          <Input
+            id="searchMember"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search member..."
+          />
+        </div>
 
         <button
           onClick={() => {
@@ -208,10 +210,22 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
             onSubmit={createMember}
             className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2"
           >
-            <Input name="fullName" placeholder="Full name" required />
-            <Input name="phone" placeholder="Phone" />
-            <Input name="email" type="email" placeholder="Email" />
-            <Input name="joinDate" type="date" required />
+            <div className="space-y-1">
+              <label htmlFor="fullName" className="text-sm font-medium text-zinc-800">Full Name</label>
+              <Input id="fullName" name="fullName" placeholder="Full name" required />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="phone" className="text-sm font-medium text-zinc-800">Phone</label>
+              <Input id="phone" name="phone" placeholder="Phone" />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="email" className="text-sm font-medium text-zinc-800">Email</label>
+              <Input id="email" name="email" type="email" placeholder="Email" />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="joinDate" className="text-sm font-medium text-zinc-800">Join Date</label>
+              <Input id="joinDate" name="joinDate" type="date" required />
+            </div>
 
             <div className="md:col-span-2">
               <button className="rounded-lg bg-zinc-900 px-3 py-2 text-white">
@@ -229,32 +243,52 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
             <h3 className="mb-3 text-lg font-semibold text-zinc-900">Edit Member</h3>
 
             <form onSubmit={updateMember} className="space-y-2">
-              <Input
-                name="memberUid"
-                defaultValue={editingMember.memberUid}
-              />
+              <div className="space-y-1">
+                <label htmlFor="editMemberUid" className="text-sm font-medium text-zinc-800">Member UID</label>
+                <Input
+                  id="editMemberUid"
+                  name="memberUid"
+                  defaultValue={editingMember.memberUid}
+                />
+              </div>
 
-              <Input
-                name="fullName"
-                defaultValue={editingMember.fullName}
-                required
-              />
+              <div className="space-y-1">
+                <label htmlFor="editFullName" className="text-sm font-medium text-zinc-800">Full Name</label>
+                <Input
+                  id="editFullName"
+                  name="fullName"
+                  defaultValue={editingMember.fullName}
+                  required
+                />
+              </div>
 
-              <Input
-                name="phone"
-                defaultValue={editingMember.phone ?? ""}
-              />
+              <div className="space-y-1">
+                <label htmlFor="editPhone" className="text-sm font-medium text-zinc-800">Phone</label>
+                <Input
+                  id="editPhone"
+                  name="phone"
+                  defaultValue={editingMember.phone ?? ""}
+                />
+              </div>
 
-              <Input
-                name="email"
-                defaultValue={editingMember.email ?? ""}
-              />
+              <div className="space-y-1">
+                <label htmlFor="editEmail" className="text-sm font-medium text-zinc-800">Email</label>
+                <Input
+                  id="editEmail"
+                  name="email"
+                  defaultValue={editingMember.email ?? ""}
+                />
+              </div>
 
-              <Input
-                name="joinDate"
-                type="date"
-                defaultValue={editingMember.joinDate.split("T")[0]}
-              />
+              <div className="space-y-1">
+                <label htmlFor="editJoinDate" className="text-sm font-medium text-zinc-800">Join Date</label>
+                <Input
+                  id="editJoinDate"
+                  name="joinDate"
+                  type="date"
+                  defaultValue={editingMember.joinDate.split("T")[0]}
+                />
+              </div>
 
               <div className="flex gap-2 pt-2">
                 <button className="rounded-lg bg-zinc-900 px-3 py-2 text-white text-zinc-900">

@@ -50,6 +50,7 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
     const json = await res.json();
     if (!res.ok) return alert(json?.error ?? "Failed");
     (e.currentTarget as HTMLFormElement).reset();
+    (e.currentTarget.closest("details") as HTMLDetailsElement).open = false; // Close the details element
     await load();
   }
 
@@ -61,17 +62,36 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
             Add charity entry
           </summary>
           <form onSubmit={create} className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
-            <input name="title" placeholder="Title" required className="rounded-xl border px-3 py-2 text-sm" />
-            <input
-              name="beneficiary"
-              placeholder="Beneficiary"
-              required
-              className="rounded-xl border px-3 py-2 text-sm"
-            />
-            <input name="amount" type="number" step="0.01" placeholder="Amount (₹)" required className="rounded-xl border px-3 py-2 text-sm" />
-            <input name="date" type="date" required className="rounded-xl border px-3 py-2 text-sm" />
-            <input name="purpose" placeholder="Purpose (optional)" className="rounded-xl border px-3 py-2 text-sm md:col-span-2" />
-            <input name="imageUrl" placeholder="Image link (optional)" className="rounded-xl border px-3 py-2 text-sm md:col-span-3" />
+            <div className="space-y-1">
+              <label htmlFor="charityTitle" className="text-sm font-medium text-zinc-800">Title</label>
+              <input id="charityTitle" name="title" placeholder="Title" required className="rounded-xl border px-3 py-2 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="charityBeneficiary" className="text-sm font-medium text-zinc-800">Beneficiary</label>
+              <input
+                id="charityBeneficiary"
+                name="beneficiary"
+                placeholder="Beneficiary"
+                required
+                className="rounded-xl border px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="charityAmount" className="text-sm font-medium text-zinc-800">Amount (₹)</label>
+              <input id="charityAmount" name="amount" type="number" step="0.01" placeholder="Amount (₹)" required className="rounded-xl border px-3 py-2 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="charityDate" className="text-sm font-medium text-zinc-800">Date</label>
+              <input id="charityDate" name="date" type="date" required className="rounded-xl border px-3 py-2 text-sm" />
+            </div>
+            <div className="space-y-1 md:col-span-2">
+              <label htmlFor="charityPurpose" className="text-sm font-medium text-zinc-800">Purpose (optional)</label>
+              <input id="charityPurpose" name="purpose" placeholder="Purpose (optional)" className="rounded-xl border px-3 py-2 text-sm md:col-span-2" />
+            </div>
+            <div className="space-y-1 md:col-span-3">
+              <label htmlFor="charityImageUrl" className="text-sm font-medium text-zinc-800">Image Link (optional)</label>
+              <input id="charityImageUrl" name="imageUrl" placeholder="Image link (optional)" className="rounded-xl border px-3 py-2 text-sm md:col-span-3" />
+            </div>
             <button className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 md:col-span-3">
               Create
             </button>

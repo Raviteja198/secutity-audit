@@ -95,32 +95,44 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
 
       {mode === "admin" ? (
         <form onSubmit={createContribution} className="grid grid-cols-1 gap-2 md:grid-cols-4">
-          <input
-            name="amount"
-            type="number"
-            step="0.01"
-            placeholder="Amount (₹)"
-            required
-            className="rounded-xl border px-3 py-2 text-sm"
-          />
-          <input
-            name="month"
-            type="number"
-            min={1}
-            max={12}
-            placeholder="Month"
-            required
-            className="rounded-xl border px-3 py-2 text-sm"
-          />
-          <input
-            name="year"
-            type="number"
-            min={2000}
-            max={3000}
-            placeholder="Year"
-            required
-            className="rounded-xl border px-3 py-2 text-sm"
-          />
+          <div className="space-y-1">
+            <label htmlFor="contribAmount" className="text-sm font-medium text-zinc-800">Amount (₹)</label>
+            <input
+              id="contribAmount"
+              name="amount"
+              type="number"
+              step="0.01"
+              placeholder="Amount (₹)"
+              required
+              className="rounded-xl border px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="contribMonth" className="text-sm font-medium text-zinc-800">Month</label>
+            <input
+              id="contribMonth"
+              name="month"
+              type="number"
+              min={1}
+              max={12}
+              placeholder="Month"
+              required
+              className="rounded-xl border px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="contribYear" className="text-sm font-medium text-zinc-800">Year</label>
+            <input
+              id="contribYear"
+              name="year"
+              type="number"
+              min={2000}
+              max={3000}
+              placeholder="Year"
+              required
+              className="rounded-xl border px-3 py-2 text-sm"
+            />
+          </div>
           <button className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800">
             Add rule
           </button>
@@ -163,20 +175,28 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
 
       {mode === "admin" ? (
         <form onSubmit={createPenalty} className="grid grid-cols-1 gap-2 md:grid-cols-3">
-          <input
-            name="amount"
-            type="number"
-            step="0.01"
-            placeholder="Penalty (₹)"
-            required
-            className="rounded-xl border px-3 py-2 text-sm"
-          />
-          <input
-            name="effectiveFrom"
-            type="date"
-            required
-            className="rounded-xl border px-3 py-2 text-sm"
-          />
+          <div className="space-y-1">
+            <label htmlFor="penaltyAmount" className="text-sm font-medium text-zinc-800">Penalty (₹)</label>
+            <input
+              id="penaltyAmount"
+              name="amount"
+              type="number"
+              step="0.01"
+              placeholder="Penalty (₹)"
+              required
+              className="rounded-xl border px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="penaltyEffectiveFrom" className="text-sm font-medium text-zinc-800">Effective From</label>
+            <input
+              id="penaltyEffectiveFrom"
+              name="effectiveFrom"
+              type="date"
+              required
+              className="rounded-xl border px-3 py-2 text-sm"
+            />
+          </div>
           <button className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800">
             Add rule
           </button>

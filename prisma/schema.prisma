@@ -56,6 +56,8 @@ model User {
   loansApproved            Loan[]             @relation("LoanApprovedBy")
   installmentsRecorded     LoanInstallment[]  @relation("LoanInstallmentRecordedBy")
   auditLogs                AuditLog[]         @relation("AuditLogAdmin")
+  transactionsCreated      Transaction[]      @relation("TransactionCreatedBy")
+  loanRepaymentsRecorded   LoanRepayment[]    @relation("LoanRepaymentRecordedBy")
 
   @@index([role])
   @@index([isActive])
@@ -190,6 +192,7 @@ model Loan {
   member   Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
 
   principalPaise   Int
+  remainingPaise   Int @default(0)
   monthlyRateBps   Int // basis points per month (e.g., 200 = 2.00%)
   durationMonths   Int
   startDate        DateTime
@@ -209,6 +212,7 @@ model Loan {
   updatedAt DateTime @updatedAt
 
   installments LoanInstallment[]
+  repayments  LoanRepayment[]
 
   @@index([memberId])
   @@index([status])
@@ -270,4 +274,57 @@ model Setting {
   value Json
 
   updatedAt DateTime @updatedAt
+}
+
+enum TransactionType {
+  PAYMENT_RECEIVED
+  LOAN_DISBURSED
+  CHARITY_DISBURSED
+  LOAN_REPAYMENT
+}
+
+model Fund {
+  id      String @id @default(cuid())
+  balance Int    @default(0) // in paise
+
+  updatedAt DateTime @updatedAt
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  type        TransactionType
+  amount      Int             // in paise, positive for inflow, negative for outflow
+  description String?
+
+  // References
+  paymentId   String?
+  loanId      String?
+  charityId   String?
+  repaymentId String?
+
+  createdById String
+  createdBy   User @relation("TransactionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([createdById])
+}
+
+model LoanRepayment {
+  id     String @id @default(cuid())
+  loanId String
+  loan   Loan   @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  amountPaise Int
+  paidAt      DateTime @default(now())
+
+  recordedById String
+  recordedBy   User @relation("LoanRepaymentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([loanId])
+  @@index([paidAt])
 }
