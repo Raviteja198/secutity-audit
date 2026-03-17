@@ -12,7 +12,8 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "seed": "prisma db seed",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "prebuild": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -48,5 +49,5 @@
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"
-    }
+  }
 }
