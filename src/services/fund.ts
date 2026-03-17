@@ -1,11 +1,21 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 function isMissingFundTableError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const prismaError = error as {
+    code?: unknown;
+    meta?: {
+      table?: unknown;
+    };
+  };
+
   return (
-    error instanceof Prisma.PrismaClientKnownRequestError
-    && error.code === "P2021"
-    && String(error.meta?.table ?? "").includes("Fund")
+    prismaError.code === "P2021"
+    && String(prismaError.meta?.table ?? "").includes("Fund")
   );
 }
 
