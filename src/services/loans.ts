@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { recordTransaction, getFundBalance } from "@/services/fund";
 
 function addMonthsUtc(date: Date, months: number) {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -38,12 +37,6 @@ export async function approveLoan(input: { loanId: string; approvedById: string 
   if (!loan) throw Object.assign(new Error("Loan not found"), { status: 404 });
   if (loan.status !== "PENDING_APPROVAL") {
     throw Object.assign(new Error("Loan is not pending approval"), { status: 400 });
-  }
-
-  // Check fund balance
-  const balance = await getFundBalance();
-  if (balance < loan.principalPaise) {
-    throw Object.assign(new Error("Insufficient funds to disburse loan"), { status: 400 });
   }
 
   const months = loan.durationMonths;
@@ -85,16 +78,6 @@ export async function approveLoan(input: { loanId: string; approvedById: string 
     await tx.loanInstallment.createMany({
       data: installments.map((i) => ({ ...i, loanId: loan.id })),
     });
-
-    // Record fund transaction for loan disbursement
-    await recordTransaction({
-      type: "LOAN_DISBURSED",
-      amount: -loan.principalPaise,
-      description: `Loan disbursement for ${loan.principalPaise} paise`,
-      loanId: loan.id,
-      createdById: input.approvedById,
-    }, tx);
-
     return u;
   });
 

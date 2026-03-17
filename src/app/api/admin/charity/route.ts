@@ -4,7 +4,6 @@ import { requireAdmin } from "@/lib/api/authz";
 import { jsonCreated, jsonError, jsonOk } from "@/lib/api/http";
 import { charityCreateSchema } from "@/lib/validators/charity";
 import { writeAuditLog } from "@/lib/audit";
-import { recordTransaction, getFundBalance } from "@/services/fund";
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,27 +21,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = charityCreateSchema.parse(body);
 
-    // Check fund balance
-    const balance = await getFundBalance();
-    if (balance < parsed.amountPaise) {
-      return jsonError("Insufficient funds for charity disbursement");
-    }
-
-    const created = await prisma.$transaction(async (tx) => {
-      const c = await tx.charity.create({
-        data: { ...parsed, createdById: ctx.userId },
-      });
-
-      // Record fund transaction for charity disbursement
-      await recordTransaction({
-        type: "CHARITY_DISBURSED",
-        amount: -parsed.amountPaise,
-        description: `Charity disbursement for ${parsed.amountPaise} paise`,
-        charityId: c.id,
-        createdById: ctx.userId,
-      }, tx);
-
-      return c;
+    const created = await prisma.charity.create({
+      data: { ...parsed, createdById: ctx.userId },
     });
 
     await writeAuditLog(req, {
