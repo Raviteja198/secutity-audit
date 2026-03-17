@@ -50,16 +50,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         }
       }
 
-      // Update loan remaining balance
-      const updatedLoan = await tx.loan.update({
-        where: { id },
-        data: {
-          remainingPaise: { decrement: amountPaise },
-        },
+      const updatedInstallments = await tx.loanInstallment.findMany({
+        where: { loanId: id },
       });
 
-      // If fully repaid, mark as closed
-      if (updatedLoan.remainingPaise <= 0) {
+      const hasOutstandingInstallments = updatedInstallments.some(
+        (inst) => inst.amountPaidPaise < inst.interestDuePaise + inst.principalDuePaise
+      );
+
+      if (!hasOutstandingInstallments) {
         await tx.loan.update({
           where: { id },
           data: { status: "CLOSED" },

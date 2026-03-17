@@ -21,41 +21,26 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     if (writeOffAmountPaise < 0) return jsonError("Invalid write-off amount");
 
     const closure = await prisma.$transaction(async (tx) => {
-      // Create a closure record or log
-      const writeOff = writeOffAmountPaise > 0 ? {
-        loanId: id,
-        amountPaise: writeOffAmountPaise,
-        recordedById: auth.userId,
-        type: "WRITE_OFF" as const,
-      } : null;
-
-      if (writeOff) {
-        // Assuming we add a LoanClosure or similar model, but for now, just log it
-        // For simplicity, we'll create a repayment with negative amount or something
-        // Actually, let's create a special repayment for write-off
+      if (writeOffAmountPaise > 0) {
         await tx.loanRepayment.create({
           data: {
             loanId: id,
             amountPaise: writeOffAmountPaise,
             recordedById: auth.userId,
-            // Maybe add a note field, but for now, just the amount
           },
         });
       }
 
-      // Update loan to closed with remaining balance set to 0
       const updatedLoan = await tx.loan.update({
         where: { id },
         data: {
           status: "CLOSED",
-          remainingPaise: 0,
         },
       });
 
-      // Record fund transaction if there's write-off (loss to fund)
       if (writeOffAmountPaise > 0) {
         await recordTransaction({
-          type: "LOAN_REPAYMENT", // Or a new type, but for now
+          type: "LOAN_REPAYMENT",
           amount: writeOffAmountPaise,
           description: `Loan force closure write-off for ${writeOffAmountPaise} paise`,
           loanId: id,
