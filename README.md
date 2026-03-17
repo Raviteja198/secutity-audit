@@ -28,6 +28,25 @@ Required:
 - `NEXTAUTH_URL`
 
 ### 3) Database + Prisma
+create a database 
+
+```bash
+
+docker run --name youth-db \
+  -e POSTGRES_PASSWORD=ChangeMe123! \
+  -e POSTGRES_DB=youth_management \
+  -p 5432:5432 \
+  -d postgres:16
+
+```
+
+```bash
+
+DATABASE_URL="postgresql://postgres:ChangeMe123!@localhost:5432/youth_management?schema=public"
+
+```
+
+
 
 Create a PostgreSQL database, then run:
 
