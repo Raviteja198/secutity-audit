@@ -17,5 +17,6 @@ export async function getPenaltyRuleForDate(date: Date) {
     where: { effectiveFrom: { lte: date } },
     orderBy: { effectiveFrom: "desc" },
   });
+  
 }
 
