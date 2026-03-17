@@ -29,6 +29,7 @@
     "pdf-lib": "^1.17.1",
     "pg": "^8.20.0",
     "prisma": "6.16.1",
+    "puppeteer": "^24.39.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.7.0",
@@ -47,5 +48,5 @@
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"
-  }
+    }
 }

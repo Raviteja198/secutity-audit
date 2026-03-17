@@ -5,7 +5,7 @@ import { jsonError, jsonOk } from "@/lib/api/http";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAuth(req);
+    const auth = await requireAuth(req);
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? "20") || 20));
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const year = searchParams.get("year");
     const memberId = searchParams.get("memberId");
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { memberId: auth.userId };
     if (month) where.month = Number(month);
     if (year) where.year = Number(year);
     if (memberId) where.memberId = memberId;
