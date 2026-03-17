@@ -22,9 +22,16 @@ export async function middleware(req: NextRequest) {
     if (isApiPath(pathname)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const defaultCallbackUrl = pathname.startsWith("/admin")
+      ? "/admin/dashboard"
+      : pathname.startsWith("/user")
+        ? "/user"
+        : req.nextUrl.pathname;
+
     const url = req.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("callbackUrl", req.nextUrl.pathname);
+    url.searchParams.set("callbackUrl", defaultCallbackUrl);
     return NextResponse.redirect(url);
   }
 
@@ -44,4 +51,3 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: ["/admin/:path*", "/user/:path*", "/api/admin/:path*", "/api/user/:path*"],
 };
-
