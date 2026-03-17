@@ -48,3 +48,45 @@ body {
   background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.88));
   box-shadow: 0 14px 40px -32px rgba(15, 23, 42, 0.42);
 }
+
+/* Mobile-friendly responsive utilities */
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+  }
+
+  .table-container {
+    @apply overflow-x-auto;
+  }
+
+  /* Tables on mobile show as cards */
+  .table-mobile-card {
+    @apply block border-l-4 border-indigo-500 bg-white p-4 mb-3 rounded-lg shadow-sm;
+  }
+
+  .mobile-modal {
+    @apply fixed inset-0 flex items-end;
+  }
+}
+
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    @apply hidden;
+  }
+
+  .grid-responsive {
+    @apply grid-cols-1;
+  }
+
+  .form-responsive {
+    @apply grid-cols-1;
+  }
+
+  .button-sm-mobile {
+    @apply text-xs px-2 py-1;
+  }
+
+  .spacing-responsive {
+    @apply px-2 py-2;
+  }
+}

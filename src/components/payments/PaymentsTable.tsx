@@ -37,9 +37,6 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
 
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(total / pageSize)),
     [total, pageSize]
@@ -150,20 +147,21 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
 }, [items]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
 
       {mode === "admin" && (
         <div className="flex justify-end">
           <button
             onClick={() => setShowAddModal(true)}
-            className="rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800"
+            className="rounded-lg bg-zinc-900 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white hover:bg-zinc-800"
           >
             + Add Payment
           </button>
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border text-zinc-900">
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto rounded-xl border text-zinc-900">
         <table className="min-w-full divide-y">
           <thead className="bg-zinc-50">
             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-600">
@@ -216,15 +214,14 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
 
                   <td className="px-3 py-2">
                     {p.receipt ? (
-                      <button
-                        onClick={() => {
-                          setSelectedPayment(p);
-                          setShowReceiptModal(true);
-                        }}
-                        className="text-blue-600 underline hover:text-blue-800"
+                      <a
+                        className="underline"
+                        href={`${base}/receipts/${p.id}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
                       >
                         {p.receipt.receiptNumber}
-                      </button>
+                      </a>
                     ) : (
                       "-"
                     )}
@@ -236,21 +233,21 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
                         <div className="flex gap-2">
                           <button
                             onClick={() => record(p.id, "CASH")}
-                            className="rounded border px-2 py-1 text-xs"
+                            className="rounded border px-2 py-1 text-xs hover:bg-zinc-50"
                           >
                             CASH
                           </button>
 
                           <button
                             onClick={() => record(p.id, "UPI")}
-                            className="rounded border px-2 py-1 text-xs"
+                            className="rounded border px-2 py-1 text-xs hover:bg-zinc-50"
                           >
                             UPI
                           </button>
 
                           <button
                             onClick={() => record(p.id, "BANK")}
-                            className="rounded border px-2 py-1 text-xs"
+                            className="rounded border px-2 py-1 text-xs hover:bg-zinc-50"
                           >
                             BANK
                           </button>
@@ -270,7 +267,90 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-zinc-700">
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-2">
+        {loading ? (
+          <div className="text-center text-sm text-zinc-600 py-4">Loading...</div>
+        ) : items.length === 0 ? (
+          <div className="rounded-lg border bg-white p-4 text-center text-sm text-zinc-600">
+            No payments found
+          </div>
+        ) : (
+          items.map((p) => (
+            <div key={p.id} className="rounded-lg border bg-white p-3 space-y-2">
+              <div className="flex justify-between items-start gap-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm text-zinc-900 truncate">{p.member.fullName}</div>
+                  <div className="text-xs text-zinc-600">{p.member.memberUid}</div>
+                </div>
+                <div className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${p.status === "PAID" ? "bg-green-100 text-green-700" : p.status === "LATE" ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700"}`}>
+                  {p.status}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-zinc-600">Period:</span>
+                  <div className="font-semibold">{p.month}/{p.year}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-600">Total:</span>
+                  <div className="font-semibold">{fmt(p.totalAmountPaise)}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-600">Contribution:</span>
+                  <div className="font-semibold">{fmt(p.baseAmountPaise)}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-600">Penalty:</span>
+                  <div className="font-semibold">{fmt(p.penaltyAmountPaise)}</div>
+                </div>
+              </div>
+
+              {p.receipt && (
+                <div className="text-xs pt-2 border-t">
+                  <a
+                    className="text-blue-600 underline"
+                    href={`${base}/receipts/${p.id}/pdf`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Receipt: {p.receipt.receiptNumber}
+                  </a>
+                </div>
+              )}
+
+              {mode === "admin" && p.status === "PENDING" && (
+                <div className="flex gap-2 pt-2 flex-wrap">
+                  <button
+                    onClick={() => record(p.id, "CASH")}
+                    className="flex-1 min-w-0 rounded-lg border bg-blue-50 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                  >
+                    CASH
+                  </button>
+
+                  <button
+                    onClick={() => record(p.id, "UPI")}
+                    className="flex-1 min-w-0 rounded-lg border bg-purple-50 px-2 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100"
+                  >
+                    UPI
+                  </button>
+
+                  <button
+                    onClick={() => record(p.id, "BANK")}
+                    className="flex-1 min-w-0 rounded-lg border bg-green-50 px-2 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100"
+                  >
+                    BANK
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between text-xs sm:text-sm text-zinc-700">
         <div>
           Page <b>{page}</b> of <b>{totalPages}</b>
         </div>
@@ -279,7 +359,7 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
           <button
             disabled={page <= 1}
             onClick={() => setPage(page - 1)}
-            className="rounded border px-3 py-1"
+            className="rounded border px-2 sm:px-3 py-1 text-xs sm:text-sm hover:bg-zinc-50 disabled:opacity-50"
           >
             Prev
           </button>
@@ -287,28 +367,29 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
           <button
             disabled={page >= totalPages}
             onClick={() => setPage(page + 1)}
-            className="rounded border px-3 py-1"
+            className="rounded border px-2 sm:px-3 py-1 text-xs sm:text-sm hover:bg-zinc-50 disabled:opacity-50"
           >
             Next
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 rounded-xl border bg-white p-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 rounded-lg sm:rounded-xl border bg-white p-3 sm:p-4">
         <div>
           <div className="text-xs text-zinc-500">Monthly Collection</div>
-          <div className="text-lg font-semibold text-zinc-500">{fmt(monthlyCollected)}</div>
+          <div className="text-base sm:text-lg font-semibold text-zinc-900 mt-1">{fmt(monthlyCollected)}</div>
         </div>
 
         <div>
           <div className="text-xs text-zinc-500">Total Collection Till Date</div>
-          <div className="text-lg font-semibold text-zinc-500">{fmt(totalCollected)}</div>
+          <div className="text-base sm:text-lg font-semibold text-zinc-900 mt-1">{fmt(totalCollected)}</div>
         </div>
       </div>
 
       {showAddModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 space-y-4 text-zinc-900 shadow-xl">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
+          <div className="w-full max-w-md rounded-lg sm:rounded-xl bg-white p-4 sm:p-6 space-y-4 text-zinc-900 shadow-xl max-h-[90vh] overflow-y-auto">
 
             <h2 className="text-lg font-semibold">Add Payment</h2>
 
@@ -320,7 +401,7 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
                   id="memberId"
                   name="memberId"
                   required
-                  className="w-full rounded border px-3 py-2"
+                  className="w-full rounded-lg border px-3 py-2 text-sm"
                 >
                   <option value="">Select Member</option>
 
@@ -332,30 +413,32 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label htmlFor="month" className="text-sm font-medium text-zinc-800">Month</label>
-                <input
-                  id="month"
-                  name="month"
-                  type="number"
-                  min={1}
-                  max={12}
-                  placeholder="Month"
-                  required
-                  className="w-full rounded border px-3 py-2"
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label htmlFor="month" className="text-sm font-medium text-zinc-800">Month</label>
+                  <input
+                    id="month"
+                    name="month"
+                    type="number"
+                    min={1}
+                    max={12}
+                    placeholder="Month"
+                    required
+                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                  />
+                </div>
 
-              <div className="space-y-1">
-                <label htmlFor="year" className="text-sm font-medium text-zinc-800">Year</label>
-                <input
-                  id="year"
-                  name="year"
-                  type="number"
-                  placeholder="Year"
-                  required
-                  className="w-full rounded border px-3 py-2"
-                />
+                <div className="space-y-1">
+                  <label htmlFor="year" className="text-sm font-medium text-zinc-800">Year</label>
+                  <input
+                    id="year"
+                    name="year"
+                    type="number"
+                    placeholder="Year"
+                    required
+                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -366,7 +449,7 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
                   type="number"
                   placeholder="Contribution Amount"
                   required
-                  className="w-full rounded border px-3 py-2"
+                  className="w-full rounded-lg border px-3 py-2 text-sm"
                 />
               </div>
 
@@ -378,23 +461,23 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
                   type="number"
                   placeholder="Penalty Amount"
                   defaultValue={0}
-                  className="w-full rounded border px-3 py-2"
+                  className="w-full rounded-lg border px-3 py-2 text-sm"
                 />
               </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-2">
 
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="rounded border px-4 py-2"
+                  className="rounded-lg border px-3 sm:px-4 py-2 text-sm hover:bg-zinc-50"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="rounded bg-zinc-900 px-4 py-2 text-white"
+                  className="rounded-lg bg-zinc-900 px-3 sm:px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
                 >
                   Save
                 </button>
@@ -403,91 +486,6 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
 
             </form>
 
-          </div>
-        </div>
-      )}
-
-      {showReceiptModal && selectedPayment && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="w-full max-w-2xl rounded-xl bg-white p-6 space-y-4 text-zinc-900 shadow-xl">
-            <h2 className="text-lg font-semibold">Receipt Details</h2>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y border">
-                <tbody className="divide-y bg-white text-sm">
-                  <tr>
-                    <td className="px-3 py-2 font-medium bg-zinc-50">Receipt Number</td>
-                    <td className="px-3 py-2">{selectedPayment.receipt?.receiptNumber}</td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 font-medium bg-zinc-50">Member</td>
-                    <td className="px-3 py-2">{selectedPayment.member.fullName} ({selectedPayment.member.memberUid})</td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 font-medium bg-zinc-50">Period</td>
-                    <td className="px-3 py-2">{selectedPayment.month}/{selectedPayment.year}</td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 font-medium bg-zinc-50">Contribution</td>
-                    <td className="px-3 py-2">{fmt(selectedPayment.baseAmountPaise)}</td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 font-medium bg-zinc-50">Penalty</td>
-                    <td className="px-3 py-2">{fmt(selectedPayment.penaltyAmountPaise)}</td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 font-medium bg-zinc-50">Total Amount</td>
-                    <td className="px-3 py-2 font-semibold">{fmt(selectedPayment.totalAmountPaise)}</td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 font-medium bg-zinc-50">Status</td>
-                    <td className="px-3 py-2">{selectedPayment.status}</td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 font-medium bg-zinc-50">Payment Method</td>
-                    <td className="px-3 py-2">{selectedPayment.paymentMethod || "-"}</td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 font-medium bg-zinc-50">Paid At</td>
-                    <td className="px-3 py-2">{selectedPayment.paidAt ? new Date(selectedPayment.paidAt).toLocaleString() : "-"}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowReceiptModal(false)}
-                className="rounded border px-4 py-2"
-              >
-                Close
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    const res = await fetch(`${base}/receipts/${selectedPayment.id}/pdf`);
-                    if (!res.ok) {
-                      const errorData = await res.json();
-                      throw new Error(errorData?.error ?? 'Failed to download PDF');
-                    }
-                    const blob = await res.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${selectedPayment.receipt?.receiptNumber}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                  } catch (error) {
-                    alert('Failed to download PDF: ' + (error as Error).message);
-                  }
-                }}
-                className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-              >
-                Download PDF
-              </button>
-            </div>
           </div>
         </div>
       )}

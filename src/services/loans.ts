@@ -78,7 +78,6 @@ export async function approveLoan(input: { loanId: string; approvedById: string 
       where: { id: loan.id },
       data: {
         status: "ACTIVE",
-        remainingPaise: loan.principalPaise,
         approvedById: input.approvedById,
         approvedAt: new Date(),
       },
