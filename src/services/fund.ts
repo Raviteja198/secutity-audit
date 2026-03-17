@@ -1,24 +1,48 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
+function isMissingFundTableError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError
+    && error.code === "P2021"
+    && String(error.meta?.table ?? "").includes("Fund")
+  );
+}
+
 export async function getFundBalance() {
-  const fund = await prisma.fund.findFirst();
-  return fund?.balance ?? 0;
+  try {
+    const fund = await prisma.fund.findFirst();
+    return fund?.balance ?? 0;
+  } catch (error) {
+    if (isMissingFundTableError(error)) {
+      return 0;
+    }
+
+    throw error;
+  }
 }
 
 export async function updateFundBalance(amount: number, tx?: Prisma.TransactionClient) {
   const prismaClient = tx || prisma;
-  const fund = await prismaClient.fund.findFirst();
-  if (!fund) {
-    // Create initial fund
-    await prismaClient.fund.create({
-      data: { balance: amount },
-    });
-  } else {
-    await prismaClient.fund.update({
-      where: { id: fund.id },
-      data: { balance: { increment: amount } },
-    });
+  try {
+    const fund = await prismaClient.fund.findFirst();
+    if (!fund) {
+      // Create initial fund
+      await prismaClient.fund.create({
+        data: { balance: amount },
+      });
+    } else {
+      await prismaClient.fund.update({
+        where: { id: fund.id },
+        data: { balance: { increment: amount } },
+      });
+    }
+  } catch (error) {
+    if (isMissingFundTableError(error)) {
+      return;
+    }
+
+    throw error;
   }
 }
 
