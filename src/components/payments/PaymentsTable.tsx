@@ -33,6 +33,8 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [loading, setLoading] = useState(false);
+  const [addingPayment, setAddingPayment] = useState(false);
+  const [addPaymentError, setAddPaymentError] = useState<string | null>(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
@@ -83,32 +85,38 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
 
   async function addPayment(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setAddPaymentError(null);
+    setAddingPayment(true);
 
-    const fd = new FormData(e.currentTarget);
+    try {
+      const fd = new FormData(e.currentTarget);
 
-    const data = {
-      memberId: fd.get("memberId"),
-      month: Number(fd.get("month")),
-      year: Number(fd.get("year")),
-      baseAmount: Number(fd.get("baseAmount")),
-      penaltyAmount: Number(fd.get("penaltyAmount")),
-    };
+      const data = {
+        memberId: fd.get("memberId"),
+        month: Number(fd.get("month")),
+        year: Number(fd.get("year")),
+        baseAmount: Number(fd.get("baseAmount")),
+        penaltyAmount: Number(fd.get("penaltyAmount")),
+      };
 
-    const res = await fetch("/api/admin/payments", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(data),
-    });
+      const res = await fetch("/api/admin/payments", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-    const json = await res.json();
+      const json = await res.json();
 
-    if (!res.ok) {
-      alert(json?.error ?? "Failed");
-      return;
+      if (!res.ok) {
+        setAddPaymentError(json?.error ?? "Failed to add payment.");
+        return;
+      }
+
+      setShowAddModal(false);
+      await load();
+    } finally {
+      setAddingPayment(false);
     }
-
-    setShowAddModal(false);
-    await load();
   }
 
   async function record(id: string, method: "CASH" | "UPI" | "BANK") {
@@ -465,21 +473,29 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
                 />
               </div>
 
+              {addPaymentError ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {addPaymentError}
+                </div>
+              ) : null}
+
               <div className="flex justify-end gap-2 pt-2">
 
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="rounded-lg border px-3 sm:px-4 py-2 text-sm hover:bg-zinc-50"
+                  disabled={addingPayment}
+                  className="rounded-lg border px-3 sm:px-4 py-2 text-sm hover:bg-zinc-50 disabled:opacity-60"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="rounded-lg bg-zinc-900 px-3 sm:px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+                  disabled={addingPayment}
+                  className="rounded-lg bg-zinc-900 px-3 sm:px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 transition"
                 >
-                  Save
+                  {addingPayment ? "Saving..." : "Save"}
                 </button>
 
               </div>

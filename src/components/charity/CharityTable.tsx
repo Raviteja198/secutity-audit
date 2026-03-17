@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 type Charity = {
   id: string;
@@ -21,6 +21,7 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
   const [items, setItems] = useState<Charity[]>([]);
   const [creatingCharity, setCreatingCharity] = useState(false);
   const [createCharityError, setCreateCharityError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   async function load() {
     const res = await fetch(base, { cache: "no-store" });
@@ -57,8 +58,9 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
         setCreateCharityError(json?.error ?? "Failed to create charity entry.");
         return;
       }
-      (e.currentTarget as HTMLFormElement).reset();
-      (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
+      formRef.current?.reset();
+      const detailsElement = formRef.current?.closest("details") as HTMLDetailsElement | null;
+      if (detailsElement) detailsElement.open = false;
       await load();
     } finally {
       setCreatingCharity(false);
@@ -72,10 +74,10 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
           <summary className="cursor-pointer text-xs sm:text-sm font-medium text-zinc-900">
             ➕ Add charity entry
           </summary>
-          <form onSubmit={create} className="mt-3 grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-3">
+          <form ref={formRef} onSubmit={create} className="mt-3 grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-3">
             <div className="space-y-1">
               <label htmlFor="charityTitle" className="text-xs sm:text-sm font-medium text-zinc-800">Title</label>
-              <input id="charityTitle" name="title" placeholder="Title" required className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500" />
+              <input id="charityTitle" name="title" placeholder="Title" required disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500" />
             </div>
             <div className="space-y-1">
               <label htmlFor="charityBeneficiary" className="text-xs sm:text-sm font-medium text-zinc-800">Beneficiary</label>
@@ -84,24 +86,25 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
                 name="beneficiary"
                 placeholder="Beneficiary"
                 required
-                className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={creatingCharity}
+                className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500"
               />
             </div>
             <div className="space-y-1">
               <label htmlFor="charityAmount" className="text-xs sm:text-sm font-medium text-zinc-800">Amount (₹)</label>
-              <input id="charityAmount" name="amount" type="number" step="0.01" placeholder="Amount" required className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500" />
+              <input id="charityAmount" name="amount" type="number" step="0.01" placeholder="Amount" required disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500" />
             </div>
             <div className="space-y-1">
               <label htmlFor="charityDate" className="text-xs sm:text-sm font-medium text-zinc-800">Date</label>
-              <input id="charityDate" name="date" type="date" required className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500" />
+              <input id="charityDate" name="date" type="date" required disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500" />
             </div>
             <div className="space-y-1 md:col-span-2">
               <label htmlFor="charityPurpose" className="text-xs sm:text-sm font-medium text-zinc-800">Purpose (optional)</label>
-              <input id="charityPurpose" name="purpose" placeholder="Purpose" className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500" />
+              <input id="charityPurpose" name="purpose" placeholder="Purpose" disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500" />
             </div>
             <div className="space-y-1 md:col-span-3">
               <label htmlFor="charityImageUrl" className="text-xs sm:text-sm font-medium text-zinc-800">Image Link (optional)</label>
-              <input id="charityImageUrl" name="imageUrl" placeholder="Image link" className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500" />
+              <input id="charityImageUrl" name="imageUrl" placeholder="Image link" disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500" />
             </div>
             <button
               type="submit"
