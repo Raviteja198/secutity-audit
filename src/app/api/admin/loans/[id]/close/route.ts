@@ -4,6 +4,19 @@ import { requireAdmin } from "@/lib/api/authz";
 import { jsonError, jsonOk } from "@/lib/api/http";
 import { recordTransaction } from "@/services/fund";
 import { writeAuditLog } from "@/lib/audit";
+import type { Prisma } from "@prisma/client";
+
+type LoanRepaymentTx = {
+  loanRepayment: {
+    create(args: {
+      data: {
+        loanId: string;
+        amountPaise: number;
+        recordedById: string;
+      };
+    }): Promise<unknown>;
+  };
+};
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -20,9 +33,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const writeOffAmountPaise = Number(body.writeOffAmountPaise) || 0;
     if (writeOffAmountPaise < 0) return jsonError("Invalid write-off amount");
 
-    const closure = await prisma.$transaction(async (tx) => {
+    const closure = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const transactionClient = tx as Prisma.TransactionClient & LoanRepaymentTx;
       if (writeOffAmountPaise > 0) {
-        await tx.loanRepayment.create({
+        await transactionClient.loanRepayment.create({
           data: {
             loanId: id,
             amountPaise: writeOffAmountPaise,

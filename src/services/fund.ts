@@ -1,5 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+
+function isMissingFundTableError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError
+    && error.code === "P2021"
+    && String(error.meta?.table ?? "").includes("Fund")
+  );
+}
 
 function isMissingFundTableError(error: unknown) {
   return (
