@@ -19,6 +19,7 @@ export function AuditTable() {
   const [pageSize] = useState(50);
   const [loading, setLoading] = useState(false);
 
+  
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
   async function load() {
