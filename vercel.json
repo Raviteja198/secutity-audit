@@ -70,6 +70,5 @@
       "permanent": false
     }
   ],
-  "regions": ["iad1"],
-  "public": ["public"]
+  "regions": ["iad1"]
 }
