@@ -65,16 +65,54 @@ Open `http://localhost:3000`.
 
 Use any managed Postgres that supports free tiers, e.g. Neon / Supabase / Render Postgres. Create a DB and copy the connection string into `DATABASE_URL`.
 
-### Vercel
+### Vercel Deployment Guide
 
-- Add env vars: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
-- Deploy
-- Run migrations:
-  - Either from your CI/CD pipeline, or locally against production DB:
+**Step 1: Add Environment Variables**
 
-```bash
-npx prisma migrate deploy
+Go to **Vercel Dashboard → Settings → Environment Variables** and add:
+
+- `DATABASE_URL` - Your PostgreSQL connection string
+- `NEXTAUTH_SECRET` - Generate with: `openssl rand -base64 33`
+- `NEXTAUTH_URL` - Your production domain (e.g., `https://app.vercel.app`)
+
+**Important:** Ensure all vars have **Production** and **Preview** scopes checked ✅
+
+**Step 2: Automatic Build Flow**
+
+When you push to main, Vercel automatically runs:
+
 ```
+1. npm ci                          (install dependencies)
+   ↓ (postinstall hook)
+2. prisma generate               (generate Prisma client)
+   ↓ (buildCommand)
+3. npm run prisma:migrate        (apply pending migrations)
+4. npm run build                 (build Next.js)
+   ↓
+5. npm start                     (run on Vercel serverless)
+```
+
+**Step 3: Manual Data Seeding**
+
+Prisma migrations run automatically, but seeding must be done manually:
+
+**Option A: Seed via CLI (one-time)**
+```bash
+# Run against production database
+npx prisma db seed --skip-generate
+```
+
+**Option B: Add to package.json postbuild hook** (if you want auto-seed)
+```json
+{
+  "scripts": {
+    "postbuild": "node prisma/seed.ts"
+  }
+}
+```
+
+**Option C: Use Vercel Function** (recommended for production)
+Create `api/admin/seed.ts` with authentication check, then call it manually.
 
 ### Netlify
 
