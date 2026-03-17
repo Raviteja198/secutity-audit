@@ -22,30 +22,22 @@ export function ExportPanel({ mode }: { mode: "admin" | "user" }) {
         <p className="mt-1 text-sm text-zinc-600">Download an Excel report (.xlsx).</p>
         {mode === "admin" ? (
           <form onSubmit={onDownload} className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
-            <div className="space-y-1">
-              <label htmlFor="exportMonth" className="text-sm font-medium text-zinc-800">Month (optional)</label>
-              <input
-                id="exportMonth"
-                name="month"
-                type="number"
-                min={1}
-                max={12}
-                placeholder="Month (optional)"
-                className="rounded-xl border px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="exportYear" className="text-sm font-medium text-zinc-800">Year (optional)</label>
-              <input
-                id="exportYear"
-                name="year"
-                type="number"
-                min={2000}
-                max={3000}
-                placeholder="Year (optional)"
-                className="rounded-xl border px-3 py-2 text-sm"
-              />
-            </div>
+            <input
+              name="month"
+              type="number"
+              min={1}
+              max={12}
+              placeholder="Month (optional)"
+              className="rounded-xl border px-3 py-2 text-sm"
+            />
+            <input
+              name="year"
+              type="number"
+              min={2000}
+              max={3000}
+              placeholder="Year (optional)"
+              className="rounded-xl border px-3 py-2 text-sm"
+            />
             <button className="rounded-xl bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800">
               Download
             </button>
