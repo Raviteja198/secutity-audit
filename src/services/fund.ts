@@ -19,14 +19,6 @@ function isMissingFundTableError(error: unknown) {
   );
 }
 
-function isMissingFundTableError(error: unknown) {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError
-    && error.code === "P2021"
-    && String(error.meta?.table ?? "").includes("Fund")
-  );
-}
-
 export async function getFundBalance() {
   try {
     const fund = await prisma.fund.findFirst();
