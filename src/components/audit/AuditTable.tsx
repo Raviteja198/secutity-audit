@@ -44,8 +44,7 @@ export function AuditTable() {
 
   return (
     <div className="space-y-3">
-      {/* Desktop TABLE */}
-      <div className="hidden md:block overflow-x-auto rounded-lg sm:rounded-xl border">
+      <div className="overflow-x-auto rounded-xl border">
         <table className="min-w-full divide-y">
           <thead className="bg-zinc-50">
             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-600">
@@ -86,53 +85,7 @@ export function AuditTable() {
         </table>
       </div>
 
-      {/* Mobile CARD VIEW */}
-      <div className="md:hidden space-y-2">
-        {loading ? (
-          <div className="text-center text-sm text-zinc-600 py-4">Loading...</div>
-        ) : items.length === 0 ? (
-          <div className="rounded-lg border bg-white p-4 text-center text-sm text-zinc-600">
-            No audit logs yet.
-          </div>
-        ) : (
-          items.map((a) => (
-            <div key={a.id} className="rounded-lg border bg-white p-3 space-y-2">
-              <div className="flex justify-between items-start gap-2 mb-2">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm text-zinc-900">{a.action}</div>
-                  <div className="text-xs text-zinc-600 truncate">{new Date(a.timestamp).toLocaleString()}</div>
-                </div>
-              </div>
-
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-zinc-600">Admin:</span>
-                  <span className="font-medium truncate">{a.admin.email}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-600">Entity:</span>
-                  <span className="font-medium">{a.entity}</span>
-                </div>
-                {a.entityId && (
-                  <div className="flex justify-between">
-                    <span className="text-zinc-600">Entity ID:</span>
-                    <span className="font-medium">{a.entityId}</span>
-                  </div>
-                )}
-                {a.ipAddress && (
-                  <div className="flex justify-between">
-                    <span className="text-zinc-600">IP:</span>
-                    <span className="font-medium">{a.ipAddress}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Pagination */}
-      <div className="flex flex-col sm:flex-row justify-between gap-2 text-xs sm:text-sm text-zinc-700">
+      <div className="flex items-center justify-between text-sm text-zinc-700">
         <div>
           Page <span className="font-medium">{page}</span> of{" "}
           <span className="font-medium">{totalPages}</span> ({total} total)
@@ -141,14 +94,14 @@ export function AuditTable() {
           <button
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="rounded-lg border px-2 sm:px-3 py-1.5 text-xs sm:text-sm disabled:opacity-50 hover:bg-zinc-50"
+            className="rounded-lg border px-3 py-1.5 disabled:opacity-50 hover:bg-zinc-50"
           >
             Prev
           </button>
           <button
             disabled={page >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="rounded-lg border px-2 sm:px-3 py-1.5 text-xs sm:text-sm disabled:opacity-50 hover:bg-zinc-50"
+            className="rounded-lg border px-3 py-1.5 disabled:opacity-50 hover:bg-zinc-50"
           >
             Next
           </button>
