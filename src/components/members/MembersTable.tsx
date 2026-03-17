@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Member = {
   id: string;
@@ -18,7 +18,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={[
-        "w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-900/10",
+        "w-full rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-900/10",
         props.className ?? "",
       ].join(" ")}
     />
@@ -34,7 +34,8 @@ export function MembersTable({ mode }: { mode: "admin" | "user" }) {
   const [total, setTotal] = useState(0);
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [creatingMember, setCreatingMember] = useState(false);
+  const [createMemberError, setCreateMemberError] = useState<string | null>(null);
 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
 
@@ -45,9 +46,8 @@ export function MembersTable({ mode }: { mode: "admin" | "user" }) {
     [total, pageSize]
   );
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
 
     try {
       const url = new URL(apiBase, window.location.origin);
@@ -65,47 +65,52 @@ export function MembersTable({ mode }: { mode: "admin" | "user" }) {
       setItems(json.items);
       setTotal(json.total);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
+      console.error(e);
     } finally {
       setLoading(false);
     }
-  }
+  }, [apiBase, page, pageSize, q]);
 
   useEffect(() => {
     void load();
-  }, [page]);
+  }, [load]);
 
 async function createMember(e: React.FormEvent<HTMLFormElement>) {
   e.preventDefault();
+  setCreateMemberError(null);
+  setCreatingMember(true);
 
-  const formElement = e.currentTarget;   // store form reference
+  const formElement = e.currentTarget;
 
-  const form = new FormData(formElement);
-  const payload = Object.fromEntries(form.entries());
+  try {
+    const form = new FormData(formElement);
+    const payload = Object.fromEntries(form.entries());
 
-  const res = await fetch(apiBase, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      ...payload,
-      joinDate: payload.joinDate
-        ? new Date(String(payload.joinDate))
-        : new Date(),
-    }),
-  });
+    const res = await fetch(apiBase, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        ...payload,
+        joinDate: payload.joinDate
+          ? new Date(String(payload.joinDate))
+          : new Date(),
+      }),
+    });
 
-  const json = await res.json();
+    const json = await res.json();
 
-  if (!res.ok) {
-    alert(json?.error ?? "Failed to create");
-    return;
-  }
+    if (!res.ok) {
+      setCreateMemberError(json?.error ?? "Failed to create member.");
+      return;
+    }
 
-  formElement.reset();
-
+    formElement.reset();
     setPage(1);
     await load();
+  } finally {
+    setCreatingMember(false);
   }
+}
 
   async function updateMember(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -179,19 +184,23 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
     <div className="space-y-4">
 
       {/* SEARCH */}
-      <div className="flex gap-2">
-        <Input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search member..."
-        />
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="space-y-1 flex-1">
+          <label htmlFor="searchMember" className="text-xs sm:text-sm font-medium text-zinc-800">Search Member</label>
+          <Input
+            id="searchMember"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search member..."
+          />
+        </div>
 
         <button
           onClick={() => {
             setPage(1);
             void load();
           }}
-          className="rounded-xl border px-3 py-2 text-sm hover:bg-zinc-50"
+          className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm hover:bg-zinc-50 h-fit"
         >
           Search
         </button>
@@ -199,72 +208,113 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
 
       {/* CREATE MEMBER */}
       {mode === "admin" && (
-        <details className="rounded-xl border bg-white p-3 text-zinc-900">
-          <summary className="cursor-pointer font-medium">
+        <details className="rounded-lg sm:rounded-xl border bg-white p-2 sm:p-3 text-zinc-900">
+          <summary className="cursor-pointer font-medium text-sm">
             Add Member
           </summary>
 
           <form
             onSubmit={createMember}
-            className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2"
+            className="mt-3 grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2"
           >
-            <Input name="fullName" placeholder="Full name" required />
-            <Input name="phone" placeholder="Phone" />
-            <Input name="email" type="email" placeholder="Email" />
-            <Input name="joinDate" type="date" required />
+            <div className="space-y-1">
+              <label htmlFor="fullName" className="text-xs sm:text-sm font-medium text-zinc-800">Full Name</label>
+              <Input id="fullName" name="fullName" placeholder="Full name" required />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="phone" className="text-xs sm:text-sm font-medium text-zinc-800">Phone</label>
+              <Input id="phone" name="phone" placeholder="Phone" />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="email" className="text-xs sm:text-sm font-medium text-zinc-800">Email</label>
+              <Input id="email" name="email" type="email" placeholder="Email" />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="joinDate" className="text-xs sm:text-sm font-medium text-zinc-800">Join Date</label>
+              <Input id="joinDate" name="joinDate" type="date" required />
+            </div>
 
             <div className="md:col-span-2">
-              <button className="rounded-lg bg-zinc-900 px-3 py-2 text-white">
-                Create Member
+              <button
+                type="submit"
+                disabled={creatingMember}
+                className="rounded-lg bg-zinc-900 px-3 py-2 text-xs sm:text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 w-full"
+              >
+                {creatingMember ? "Creating member..." : "Create Member"}
               </button>
             </div>
+            {createMemberError ? (
+              <div className="md:col-span-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs sm:text-sm text-red-700">
+                {createMemberError}
+              </div>
+            ) : null}
           </form>
         </details>
       )}
 
       {/* EDIT MODAL */}
       {editingMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-zinc-900">
-          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-lg text-zinc-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-zinc-900 p-4">
+          <div className="w-full max-w-md rounded-lg sm:rounded-xl bg-white p-4 sm:p-6 shadow-lg text-zinc-900 max-h-[90vh] overflow-y-auto">
             <h3 className="mb-3 text-lg font-semibold text-zinc-900">Edit Member</h3>
 
-            <form onSubmit={updateMember} className="space-y-2">
-              <Input
-                name="memberUid"
-                defaultValue={editingMember.memberUid}
-              />
+            <form onSubmit={updateMember} className="space-y-2 sm:space-y-3">
+              <div className="space-y-1">
+                <label htmlFor="editMemberUid" className="text-xs sm:text-sm font-medium text-zinc-800">Member UID</label>
+                <Input
+                  id="editMemberUid"
+                  name="memberUid"
+                  defaultValue={editingMember.memberUid}
+                />
+              </div>
 
-              <Input
-                name="fullName"
-                defaultValue={editingMember.fullName}
-                required
-              />
+              <div className="space-y-1">
+                <label htmlFor="editFullName" className="text-xs sm:text-sm font-medium text-zinc-800">Full Name</label>
+                <Input
+                  id="editFullName"
+                  name="fullName"
+                  defaultValue={editingMember.fullName}
+                  required
+                />
+              </div>
 
-              <Input
-                name="phone"
-                defaultValue={editingMember.phone ?? ""}
-              />
+              <div className="space-y-1">
+                <label htmlFor="editPhone" className="text-xs sm:text-sm font-medium text-zinc-800">Phone</label>
+                <Input
+                  id="editPhone"
+                  name="phone"
+                  defaultValue={editingMember.phone ?? ""}
+                />
+              </div>
 
-              <Input
-                name="email"
-                defaultValue={editingMember.email ?? ""}
-              />
+              <div className="space-y-1">
+                <label htmlFor="editEmail" className="text-xs sm:text-sm font-medium text-zinc-800">Email</label>
+                <Input
+                  id="editEmail"
+                  name="email"
+                  defaultValue={editingMember.email ?? ""}
+                />
+              </div>
 
-              <Input
-                name="joinDate"
-                type="date"
-                defaultValue={editingMember.joinDate.split("T")[0]}
-              />
+              <div className="space-y-1">
+                <label htmlFor="editJoinDate" className="text-xs sm:text-sm font-medium text-zinc-800">Join Date</label>
+                <Input
+                  id="editJoinDate"
+                  name="joinDate"
+                  type="date"
+                  defaultValue={editingMember.joinDate.split("T")[0]}
+                />
+              </div>
 
-              <div className="flex gap-2 pt-2">
-                <button className="rounded-lg bg-zinc-900 px-3 py-2 text-white text-zinc-900">
+              <div className="flex gap-2 pt-3">
+                <button className="flex-1 rounded-lg bg-zinc-900 px-3 py-2 text-xs sm:text-sm font-medium text-white hover:bg-zinc-800">
                   Update
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setEditingMember(null)}
-                  className="rounded-lg border px-3 py-2"
+                  className="flex-1 rounded-lg border px-3 py-2 text-xs sm:text-sm hover:bg-zinc-50"
                 >
                   Cancel
                 </button>
@@ -274,8 +324,8 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
         </div>
       )}
 
-      {/* TABLE */}
-      <div className="overflow-x-auto rounded-xl border">
+      {/* Desktop TABLE */}
+      <div className="hidden md:block overflow-x-auto rounded-lg sm:rounded-xl border">
         <table className="min-w-full divide-y">
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-600">
             <tr>
@@ -360,8 +410,80 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
         </table>
       </div>
 
+      {/* Mobile CARD VIEW */}
+      <div className="md:hidden space-y-2">
+        {loading ? (
+          <div className="text-center text-sm text-zinc-600 py-4">Loading...</div>
+        ) : items.length === 0 ? (
+          <div className="rounded-lg border bg-white p-4 text-center text-sm text-zinc-600">
+            No members found
+          </div>
+        ) : (
+          items.map((m) => (
+            <div key={m.id} className="rounded-lg border bg-white p-3 space-y-2">
+              <div className="flex justify-between items-start gap-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm text-zinc-900 truncate">{m.fullName}</div>
+                  <div className="text-xs text-zinc-600">{m.memberUid}</div>
+                </div>
+                <div className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${m.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-zinc-100 text-zinc-700"}`}>
+                  {m.status}
+                </div>
+              </div>
+
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-zinc-600">Join Date:</span>
+                  <span className="font-medium">{new Date(m.joinDate).toLocaleDateString()}</span>
+                </div>
+                {m.phone && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-600">Phone:</span>
+                    <span className="font-medium">{m.phone}</span>
+                  </div>
+                )}
+                {m.email && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-600">Email:</span>
+                    <span className="font-medium truncate">{m.email}</span>
+                  </div>
+                )}
+              </div>
+
+              {mode === "admin" && (
+                <div className="flex gap-2 pt-2 flex-wrap">
+                  {m.status === "ACTIVE" ? (
+                    <>
+                      <button
+                        onClick={() => setEditingMember(m)}
+                        className="flex-1 min-w-0 rounded-lg bg-blue-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deactivateMember(m.id)}
+                        className="flex-1 min-w-0 rounded-lg bg-red-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+                      >
+                        Deactivate
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => reactivateMember(m.id)}
+                      className="w-full rounded-lg bg-green-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+                    >
+                      Reactivate
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
       {/* PAGINATION */}
-      <div className="flex justify-between text-sm text-zinc-700">
+      <div className="flex flex-col sm:flex-row justify-between gap-2 text-xs sm:text-sm text-zinc-700">
         <div>
           Page {page} of {totalPages} ({total} members)
         </div>
@@ -370,7 +492,7 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
           <button
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
-            className="rounded border px-3 py-1 disabled:opacity-50"
+            className="rounded border px-2 sm:px-3 py-1 text-xs sm:text-sm hover:bg-zinc-50 disabled:opacity-50"
           >
             Prev
           </button>
@@ -378,7 +500,7 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
           <button
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded border px-3 py-1 disabled:opacity-50"
+            className="rounded border px-2 sm:px-3 py-1 text-xs sm:text-sm hover:bg-zinc-50 disabled:opacity-50"
           >
             Next
           </button>
@@ -610,4 +732,3 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
 //     </div>
 //   );
 // }
-

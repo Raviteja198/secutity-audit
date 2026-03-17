@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/api/authz";
 import { jsonCreated, jsonError, jsonOk } from "@/lib/api/http";
 import { memberCreateSchema } from "@/lib/validators/members";
 import { writeAuditLog } from "@/lib/audit";
+import { Prisma } from "@prisma/client";
 
 
 
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     const status = searchParams.get("status")?.toUpperCase();
 
-    const where: any = {};
+    const where: Prisma.MemberWhereInput = {};
 
     if (q) {
       where.OR = [
