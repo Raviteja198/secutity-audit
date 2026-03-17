@@ -71,13 +71,13 @@ export function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">Dashboard</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-lg sm:text-2xl font-semibold text-zinc-900">Dashboard</h1>
         
-        <div className="flex gap-4">
+        <div className="flex gap-2 sm:gap-4">
           <div className="space-y-1">
-            <label htmlFor="monthSelect" className="text-sm font-medium text-zinc-800">Month</label>
+            <label htmlFor="monthSelect" className="text-xs sm:text-sm font-medium text-zinc-800">Month</label>
             <select
               id="monthSelect"
               value={selectedMonth}
@@ -85,7 +85,7 @@ export function Dashboard() {
                 setLoading(true);
                 setSelectedMonth(Number(e.target.value));
               }}
-              className="rounded border px-3 py-2 text-sm"
+              className="rounded border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm"
             >
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -96,7 +96,7 @@ export function Dashboard() {
           </div>
           
           <div className="space-y-1">
-            <label htmlFor="yearSelect" className="text-sm font-medium text-zinc-800">Year</label>
+            <label htmlFor="yearSelect" className="text-xs sm:text-sm font-medium text-zinc-800">Year</label>
             <select
               id="yearSelect"
               value={selectedYear}
@@ -104,7 +104,7 @@ export function Dashboard() {
                 setLoading(true);
                 setSelectedYear(Number(e.target.value));
               }}
-              className="rounded border px-3 py-2 text-sm"
+              className="rounded border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm"
             >
               {Array.from({ length: 5 }, (_, i) => {
                 const year = new Date().getFullYear() - 2 + i;
@@ -120,79 +120,81 @@ export function Dashboard() {
       </div>
 
       {/* Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="lux-card p-4 rounded-xl">
-          <div className="text-sm text-zinc-500">Total Members</div>
-          <div className="text-2xl font-bold text-zinc-900">{data.totalMembers}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+        <div className="lux-card p-3 sm:p-4 rounded-lg sm:rounded-xl">
+          <div className="text-xs sm:text-sm text-zinc-500">Total Members</div>
+          <div className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">{data.totalMembers}</div>
         </div>
 
-        <div className="lux-card p-4 rounded-xl">
-          <div className="text-sm text-zinc-500">Monthly Collections</div>
-          <div className="text-2xl font-bold text-zinc-900">{fmt(data.monthlyCollections)}</div>
+        <div className="lux-card p-3 sm:p-4 rounded-lg sm:rounded-xl">
+          <div className="text-xs sm:text-sm text-zinc-500">Monthly Collections</div>
+          <div className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">{fmt(data.monthlyCollections)}</div>
         </div>
 
-        <div className="lux-card p-4 rounded-xl">
-          <div className="text-sm text-zinc-500">Total Collections</div>
-          <div className="text-2xl font-bold text-zinc-900">{fmt(data.totalCollections)}</div>
+        <div className="lux-card p-3 sm:p-4 rounded-lg sm:rounded-xl">
+          <div className="text-xs sm:text-sm text-zinc-500">Total Collections</div>
+          <div className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">{fmt(data.totalCollections)}</div>
         </div>
 
-        <div className="lux-card p-4 rounded-xl">
-          <div className="text-sm text-zinc-500">Pending Payments</div>
-          <div className="text-2xl font-bold text-zinc-900">{data.pendingPayments}</div>
+        <div className="lux-card p-3 sm:p-4 rounded-lg sm:rounded-xl">
+          <div className="text-xs sm:text-sm text-zinc-500">Pending Payments</div>
+          <div className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">{data.pendingPayments}</div>
         </div>
 
-        <div className="lux-card p-4 rounded-xl">
-          <div className="text-sm text-zinc-500">Overdue Loans</div>
-          <div className="text-2xl font-bold text-zinc-900">{data.overdueLoans}</div>
+        <div className="lux-card p-3 sm:p-4 rounded-lg sm:rounded-xl">
+          <div className="text-xs sm:text-sm text-zinc-500">Overdue Loans</div>
+          <div className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">{data.overdueLoans}</div>
         </div>
 
-        <div className="lux-card p-4 rounded-xl">
-          <div className="text-sm text-zinc-500">Active Loans</div>
-          <div className="text-2xl font-bold text-zinc-900">{data.activeLoans}</div>
+        <div className="lux-card p-3 sm:p-4 rounded-lg sm:rounded-xl">
+          <div className="text-xs sm:text-sm text-zinc-500">Active Loans</div>
+          <div className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">{data.activeLoans}</div>
         </div>
 
-        <div className="lux-card p-4 rounded-xl">
-          <div className="text-sm text-zinc-500">Total Charity</div>
-          <div className="text-2xl font-bold text-zinc-900">{fmt(data.totalCharity)}</div>
+        <div className="lux-card p-3 sm:p-4 rounded-lg sm:rounded-xl">
+          <div className="text-xs sm:text-sm text-zinc-500">Total Charity</div>
+          <div className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">{fmt(data.totalCharity)}</div>
         </div>
 
-        <div className="lux-card p-4 rounded-xl">
-          <div className="text-sm text-zinc-500">Fund Balance</div>
-          <div className="text-2xl font-bold text-zinc-900">{fmt(data.fundBalance)}</div>
+        <div className="lux-card p-3 sm:p-4 rounded-lg sm:rounded-xl">
+          <div className="text-xs sm:text-sm text-zinc-500">Fund Balance</div>
+          <div className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">{fmt(data.fundBalance)}</div>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="lux-card p-6 rounded-xl">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-4">Monthly Collections Trend</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={data.monthlyTrend}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis tickFormatter={(value) => value ? `₹${(value / 100).toFixed(0)}` : "₹0"} />
-            <Tooltip formatter={(value: number | undefined) => [value ? fmt(value) : "₹0.00", "Collections"]} />
-            <Line type="monotone" dataKey="amount" stroke="#3f3f46" strokeWidth={2} />
-          </LineChart>
-        </ResponsiveContainer>
+      <div className="lux-card p-3 sm:p-6 rounded-lg sm:rounded-xl">
+        <h2 className="text-base sm:text-lg font-semibold text-zinc-900 mb-4">Monthly Collections Trend</h2>
+        <div className="w-full h-64 sm:h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data.monthlyTrend}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+              <YAxis tickFormatter={(value) => value ? `₹${(value / 100).toFixed(0)}` : "₹0"} tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(value: number | undefined) => [value ? fmt(value) : "₹0.00", "Collections"]} />
+              <Line type="monotone" dataKey="amount" stroke="#3f3f46" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="lux-card p-6 rounded-xl">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="lux-card p-3 sm:p-6 rounded-lg sm:rounded-xl">
+        <h2 className="text-base sm:text-lg font-semibold text-zinc-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <a
             href="/admin/members"
-            className="p-4 border rounded-lg hover:bg-zinc-50 text-center"
+            className="p-3 sm:p-4 border rounded-lg hover:bg-zinc-50 text-center"
           >
-            <div className="text-sm font-medium text-zinc-900">Manage Members</div>
+            <div className="text-xs sm:text-sm font-medium text-zinc-900">Manage Members</div>
             <div className="text-xs text-zinc-500">Add, edit, or view members</div>
           </a>
 
           <a
             href="/admin/payments"
-            className="p-4 border rounded-lg hover:bg-zinc-50 text-center"
+            className="p-3 sm:p-4 border rounded-lg hover:bg-zinc-50 text-center"
           >
-            <div className="text-sm font-medium text-zinc-900">Record Payments</div>
+            <div className="text-xs sm:text-sm font-medium text-zinc-900">Record Payments</div>
             <div className="text-xs text-zinc-500">Process member contributions</div>
           </a>
 

@@ -192,7 +192,6 @@ model Loan {
   member   Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
 
   principalPaise   Int
-  remainingPaise   Int @default(0)
   monthlyRateBps   Int // basis points per month (e.g., 200 = 2.00%)
   durationMonths   Int
   startDate        DateTime
