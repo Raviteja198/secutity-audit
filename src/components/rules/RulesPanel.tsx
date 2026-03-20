@@ -147,14 +147,14 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
   return (
     <div className="space-y-6 text-zinc-900">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-zinc-900">Contribution rules</h2>
+        <h2 className="text-base font-semibold text-zinc-400">Contribution rules</h2>
         {loading ? <span className="text-sm text-zinc-600">Loading…</span> : null}
       </div>
 
       {mode === "admin" ? (
         <form onSubmit={createContribution} className="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-4">
-          <div className="space-y-1">
-            <label htmlFor="contribAmount" className="text-xs sm:text-sm font-medium text-zinc-800">Amount (₹)</label>
+          <div className="space-y-1 text-zinc-400">
+            <label htmlFor="contribAmount" className="text-xs sm:text-sm font-medium text-zinc-400">Amount (₹)</label>
             <input
               id="contribAmount"
               name="amount"
@@ -165,8 +165,8 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
               className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <div className="space-y-1">
-            <label htmlFor="contribMonth" className="text-xs sm:text-sm font-medium text-zinc-800">Month</label>
+          <div className="space-y-1 text-zinc-400">
+            <label htmlFor="contribMonth" className="text-xs sm:text-sm font-medium text-zinc-400">Month</label>
             <input
               id="contribMonth"
               name="month"
@@ -178,8 +178,8 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
               className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <div className="space-y-1">
-            <label htmlFor="contribYear" className="text-xs sm:text-sm font-medium text-zinc-800">Year</label>
+          <div className="space-y-1 text-zinc-400">
+            <label htmlFor="contribYear" className="text-xs sm:text-sm font-medium text-zinc-400">Year</label>
             <input
               id="contribYear"
               name="year"
@@ -283,13 +283,13 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
       </div>
 
       <div className="flex items-center justify-between border-t pt-6">
-        <h2 className="text-base font-semibold">Penalty rules</h2>
+        <h2 className="text-base font-semibold text-zinc-400">Penalty rules</h2>
       </div>
 
       {mode === "admin" ? (
         <form onSubmit={createPenalty} className="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-3">
-          <div className="space-y-1">
-            <label htmlFor="penaltyAmount" className="text-xs sm:text-sm font-medium text-zinc-800">Penalty (₹)</label>
+          <div className="space-y-1 text-zinc-400">
+            <label htmlFor="penaltyAmount" className="text-xs sm:text-sm font-medium text-zinc-400">Penalty (₹)</label>
             <input
               id="penaltyAmount"
               name="amount"
@@ -300,8 +300,8 @@ export function RulesPanel({ mode }: { mode: "admin" | "user" }) {
               className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <div className="space-y-1">
-            <label htmlFor="penaltyEffectiveFrom" className="text-xs sm:text-sm font-medium text-zinc-800">Effective From</label>
+          <div className="space-y-1 text-zinc-400">
+            <label htmlFor="penaltyEffectiveFrom" className="text-xs sm:text-sm font-medium text-zinc-400">Effective From</label>
             <input
               id="penaltyEffectiveFrom"
               name="effectiveFrom"

@@ -186,7 +186,7 @@ async function createMember(e: React.FormEvent<HTMLFormElement>) {
       {/* SEARCH */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="space-y-1 flex-1">
-          <label htmlFor="searchMember" className="text-xs sm:text-sm font-medium text-zinc-800">Search Member</label>
+          <label htmlFor="searchMember" className="text-xs sm:text-sm font-medium text-zinc-500">Search Member</label>
           <Input
             id="searchMember"
             value={q}

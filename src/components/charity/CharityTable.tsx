@@ -22,6 +22,7 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
   const [creatingCharity, setCreatingCharity] = useState(false);
   const [createCharityError, setCreateCharityError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch(base, { cache: "no-store" });
@@ -67,6 +68,31 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
     }
   }
 
+  async function deleteCharity(id: string) {
+    if (!confirm("Are you sure you want to delete this charity entry? This action cannot be undone.")) {
+      return;
+    }
+
+    setDeleting(id);
+
+    try {
+      const res = await fetch(`${base}/${id}/delete`, {
+        method: "DELETE",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        alert(json?.error ?? "Failed to delete charity entry");
+        return;
+      }
+
+      await load();
+    } finally {
+      setDeleting(null);
+    }
+  }
+
   return (
     <div className="space-y-3 sm:space-y-4">
       {mode === "admin" ? (
@@ -77,7 +103,7 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
           <form ref={formRef} onSubmit={create} className="mt-3 grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-3">
             <div className="space-y-1">
               <label htmlFor="charityTitle" className="text-xs sm:text-sm font-medium text-zinc-800">Title</label>
-              <input id="charityTitle" name="title" placeholder="Title" required disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500" />
+              <input id="charityTitle" name="title" placeholder="Title" required disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 text-zinc-800" />
             </div>
             <div className="space-y-1">
               <label htmlFor="charityBeneficiary" className="text-xs sm:text-sm font-medium text-zinc-800">Beneficiary</label>
@@ -87,24 +113,24 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
                 placeholder="Beneficiary"
                 required
                 disabled={creatingCharity}
-                className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500"
+                className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 text-zinc-800"
               />
             </div>
             <div className="space-y-1">
               <label htmlFor="charityAmount" className="text-xs sm:text-sm font-medium text-zinc-800">Amount (₹)</label>
-              <input id="charityAmount" name="amount" type="number" step="0.01" placeholder="Amount" required disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500" />
+              <input id="charityAmount" name="amount" type="number" step="0.01" placeholder="Amount" required disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 text-zinc-900" />
             </div>
             <div className="space-y-1">
               <label htmlFor="charityDate" className="text-xs sm:text-sm font-medium text-zinc-800">Date</label>
-              <input id="charityDate" name="date" type="date" required disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500" />
+              <input id="charityDate" name="date" type="date" required disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 text-zinc-800" />
             </div>
             <div className="space-y-1 md:col-span-2">
               <label htmlFor="charityPurpose" className="text-xs sm:text-sm font-medium text-zinc-800">Purpose (optional)</label>
-              <input id="charityPurpose" name="purpose" placeholder="Purpose" disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500" />
+              <input id="charityPurpose" name="purpose" placeholder="Purpose" disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 text-zinc-800" />
             </div>
             <div className="space-y-1 md:col-span-3">
               <label htmlFor="charityImageUrl" className="text-xs sm:text-sm font-medium text-zinc-800">Image Link (optional)</label>
-              <input id="charityImageUrl" name="imageUrl" placeholder="Image link" disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-500" />
+              <input id="charityImageUrl" name="imageUrl" placeholder="Image link" disabled={creatingCharity} className="rounded-lg sm:rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-zinc-100 text-zinc-800" />
             </div>
             <button
               type="submit"
@@ -133,6 +159,7 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
               <th className="px-3 py-2 sm:px-4">Amount</th>
               <th className="px-3 py-2 sm:px-4">Purpose</th>
               <th className="px-3 py-2 sm:px-4">Image</th>
+              {mode === "admin" && <th className="px-3 py-2 sm:px-4">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y bg-white text-sm">
@@ -152,11 +179,22 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
                     <span className="text-zinc-500 text-xs sm:text-sm">-</span>
                   )}
                 </td>
+                {mode === "admin" && (
+                  <td className="px-3 py-2 sm:px-4">
+                    <button
+                      onClick={() => deleteCharity(c.id)}
+                      disabled={deleting === c.id}
+                      className="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {deleting === c.id ? "..." : "Delete"}
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
             {items.length === 0 ? (
               <tr>
-                <td className="px-3 py-3 sm:px-4 text-center text-zinc-600" colSpan={6}>
+                <td className="px-3 py-3 sm:px-4 text-center text-zinc-600" colSpan={mode === "admin" ? 7 : 6}>
                   No charity entries yet.
                 </td>
               </tr>
@@ -199,6 +237,18 @@ export function CharityTable({ mode }: { mode: "admin" | "user" }) {
                 <a href={c.imageUrl} target="_blank" rel="noreferrer" className="inline-block text-xs text-indigo-600 hover:underline">
                   📷 View Image
                 </a>
+              )}
+
+              {mode === "admin" && (
+                <div className="pt-2 border-t">
+                  <button
+                    onClick={() => deleteCharity(c.id)}
+                    disabled={deleting === c.id}
+                    className="w-full rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                  >
+                    {deleting === c.id ? "..." : "Delete"}
+                  </button>
+                </div>
               )}
             </div>
           ))

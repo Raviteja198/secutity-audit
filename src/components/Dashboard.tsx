@@ -64,20 +64,20 @@ export function Dashboard() {
   if (!data) {
     return (
       <div className="space-y-6">
-        <h1 className="text-lg font-semibold text-zinc-900">Dashboard</h1>
+        <h1 className="text-lg font-semibold text-zinc-300">Dashboard</h1>
         <div className="text-red-600">Failed to load dashboard data</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 ">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-2xl font-semibold text-zinc-900">Dashboard</h1>
+        <h1 className="text-lg sm:text-2xl font-semibold text-zinc-300">Dashboard</h1>
         
         <div className="flex gap-2 sm:gap-4">
           <div className="space-y-1">
-            <label htmlFor="monthSelect" className="text-xs sm:text-sm font-medium text-zinc-800">Month</label>
+            <label htmlFor="monthSelect" className="text-xs sm:text-sm font-medium text-zinc-500">Month</label>
             <select
               id="monthSelect"
               value={selectedMonth}
@@ -96,7 +96,7 @@ export function Dashboard() {
           </div>
           
           <div className="space-y-1">
-            <label htmlFor="yearSelect" className="text-xs sm:text-sm font-medium text-zinc-800">Year</label>
+            <label htmlFor="yearSelect" className="text-xs sm:text-sm font-medium text-zinc-500">Year</label>
             <select
               id="yearSelect"
               value={selectedYear}

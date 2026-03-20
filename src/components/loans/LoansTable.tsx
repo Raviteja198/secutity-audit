@@ -44,6 +44,7 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
   const [repayments, setRepayments] = useState<LoanRepayment[]>([]);
   const [creatingLoan, setCreatingLoan] = useState(false);
   const [createLoanError, setCreateLoanError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch(base, { cache: "no-store" });
@@ -109,6 +110,31 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
     await load();
   }
 
+  async function deleteLoan(id: string) {
+    if (!confirm("Are you sure you want to delete this loan? This action cannot be undone.")) {
+      return;
+    }
+
+    setDeleting(id);
+
+    try {
+      const res = await fetch(`/api/admin/loans/${id}/delete`, {
+        method: "DELETE",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        alert(json?.error ?? "Failed to delete loan");
+        return;
+      }
+
+      await load();
+    } finally {
+      setDeleting(null);
+    }
+  }
+
   async function startRepay(loan: Loan) {
     setRepayingLoan(loan);
     // Fetch loan details with installments
@@ -148,7 +174,7 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
           <form onSubmit={create} className="mt-3 grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-3">
             <div className="space-y-1">
               <label htmlFor="loanMember" className="text-xs sm:text-sm font-medium text-zinc-800">Select Member</label>
-              <select id="loanMember" name="memberId" required className="rounded-lg border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full">
+              <select id="loanMember" name="memberId" required className="rounded-lg border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full text-zinc-900">
                 <option value="">Select Member</option>
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -159,15 +185,15 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
             </div>
             <div className="space-y-1">
               <label htmlFor="loanPrincipal" className="text-xs sm:text-sm font-medium text-zinc-800">Principal (₹)</label>
-              <input id="loanPrincipal" name="principal" type="number" step="0.01" placeholder="Principal (₹)" required className="rounded-lg border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full" />
+              <input id="loanPrincipal" name="principal" type="number" step="0.01" placeholder="Principal (₹)" required className="rounded-lg border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full text-zinc-900" />
             </div>
             <div className="space-y-1">
               <label htmlFor="loanRate" className="text-xs sm:text-sm font-medium text-zinc-800">Monthly Rate (%)</label>
-              <input id="loanRate" name="ratePercent" type="number" step="0.01" placeholder="Monthly rate (%)" required className="rounded-lg border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full" />
+              <input id="loanRate" name="ratePercent" type="number" step="0.01" placeholder="Monthly rate (%)" required className="rounded-lg border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full text-zinc-900" />
             </div>
             <div className="space-y-1">
               <label htmlFor="loanDuration" className="text-xs sm:text-sm font-medium text-zinc-800">Duration (Months)</label>
-              <input id="loanDuration" name="durationMonths" type="number" min={2} max={240} placeholder="Duration (months)" required className="rounded-lg border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full" />
+              <input id="loanDuration" name="durationMonths" type="number" min={2} max={240} placeholder="Duration (months)" required className="rounded-lg border px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full text-zinc-900" />
             </div>
             <div className="space-y-1">
               <label htmlFor="loanStartDate" className="text-xs sm:text-sm font-medium text-zinc-800">Start Date</label>
@@ -193,7 +219,7 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
       ) : null}
 
       {/* Desktop Table View */}
-      <div className="hidden md:block overflow-x-auto rounded-xl border flex-1 overflow-y-auto">
+      <div className="hidden md:block overflow-x-auto rounded-xl border flex-1 overflow-y-auto text-zinc-900">
         <table className="min-w-full divide-y">
           <thead className="bg-zinc-50">
             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-600">
@@ -222,19 +248,37 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
                 {mode === "admin" ? (
                   <td className="px-3 py-2">
                     {l.status === "PENDING_APPROVAL" ? (
-                      <button
-                        onClick={() => void approve(l.id)}
-                        className="rounded-lg border px-2 py-1 text-xs hover:bg-zinc-50"
-                      >
-                        Approve & schedule
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => void approve(l.id)}
+                          className="rounded-lg border px-2 py-1 text-xs hover:bg-zinc-50"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => deleteLoan(l.id)}
+                          disabled={deleting === l.id}
+                          className="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          {deleting === l.id ? "..." : "Delete"}
+                        </button>
+                      </div>
                     ) : l.status === "ACTIVE" ? (
-                      <button
-                        onClick={() => void startRepay(l)}
-                        className="rounded-lg border px-2 py-1 text-xs hover:bg-zinc-50"
-                      >
-                        Repay
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => void startRepay(l)}
+                          className="rounded-lg border px-2 py-1 text-xs hover:bg-zinc-50"
+                        >
+                          Repay
+                        </button>
+                        <button
+                          onClick={() => deleteLoan(l.id)}
+                          disabled={deleting === l.id}
+                          className="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          {deleting === l.id ? "..." : "Delete"}
+                        </button>
+                      </div>
                     ) : (
                       "-"
                     )}
@@ -301,20 +345,38 @@ export function LoansTable({ mode }: { mode: "admin" | "user" }) {
 
               <div className="flex gap-2 pt-2 flex-wrap">
                 {mode === "admin" && l.status === "PENDING_APPROVAL" && (
-                  <button
-                    onClick={() => void approve(l.id)}
-                    className="flex-1 min-w-0 rounded-lg border border-green-300 bg-green-50 px-2 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100"
-                  >
-                    Approve
-                  </button>
+                  <>
+                    <button
+                      onClick={() => void approve(l.id)}
+                      className="flex-1 min-w-0 rounded-lg border border-green-300 bg-green-50 px-2 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => deleteLoan(l.id)}
+                      disabled={deleting === l.id}
+                      className="flex-1 min-w-0 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                    >
+                      {deleting === l.id ? "..." : "Delete"}
+                    </button>
+                  </>
                 )}
                 {mode === "admin" && l.status === "ACTIVE" && (
-                  <button
-                    onClick={() => void startRepay(l)}
-                    className="flex-1 min-w-0 rounded-lg border border-blue-300 bg-blue-50 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                  >
-                    Repay
-                  </button>
+                  <>
+                    <button
+                      onClick={() => void startRepay(l)}
+                      className="flex-1 min-w-0 rounded-lg border border-blue-300 bg-blue-50 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                    >
+                      Repay
+                    </button>
+                    <button
+                      onClick={() => deleteLoan(l.id)}
+                      disabled={deleting === l.id}
+                      className="flex-1 min-w-0 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                    >
+                      {deleting === l.id ? "..." : "Delete"}
+                    </button>
+                  </>
                 )}
                 <button
                   onClick={() => void showHistory(l)}
