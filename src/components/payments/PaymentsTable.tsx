@@ -38,6 +38,7 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(total / pageSize)),
@@ -131,6 +132,31 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
     if (!res.ok) return alert(json?.error ?? "Failed");
 
     await load();
+  }
+
+  async function deletePayment(id: string) {
+    if (!confirm("Are you sure you want to delete this payment? This action cannot be undone.")) {
+      return;
+    }
+
+    setDeleting(id);
+
+    try {
+      const res = await fetch(`${base}/payments/${id}`, {
+        method: "DELETE",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        alert(json?.error ?? "Failed to delete payment");
+        return;
+      }
+
+      await load();
+    } finally {
+      setDeleting(null);
+    }
   }
 
   const monthlyCollected = useMemo(() => {
@@ -238,7 +264,7 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
                   {mode === "admin" && (
                     <td className="px-3 py-2">
                       {p.status === "PENDING" ? (
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <button
                             onClick={() => record(p.id, "CASH")}
                             className="rounded border px-2 py-1 text-xs hover:bg-zinc-50"
@@ -259,7 +285,23 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
                           >
                             BANK
                           </button>
+
+                          <button
+                            onClick={() => deletePayment(p.id)}
+                            disabled={deleting === p.id}
+                            className="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            {deleting === p.id ? "..." : "Delete"}
+                          </button>
                         </div>
+                      ) : p.status === "LATE" ? (
+                        <button
+                          onClick={() => deletePayment(p.id)}
+                          disabled={deleting === p.id}
+                          className="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          {deleting === p.id ? "..." : "Delete"}
+                        </button>
                       ) : (
                         <span className="text-xs text-zinc-500">
                           {p.paymentMethod}
@@ -350,6 +392,32 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
                   >
                     BANK
                   </button>
+
+                  <button
+                    onClick={() => deletePayment(p.id)}
+                    disabled={deleting === p.id}
+                    className="flex-1 min-w-0 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                  >
+                    {deleting === p.id ? "..." : "Delete"}
+                  </button>
+                </div>
+              )}
+
+              {mode === "admin" && p.status === "LATE" && (
+                <div className="pt-2">
+                  <button
+                    onClick={() => deletePayment(p.id)}
+                    disabled={deleting === p.id}
+                    className="w-full rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                  >
+                    {deleting === p.id ? "..." : "Delete"}
+                  </button>
+                </div>
+              )}
+
+              {mode === "admin" && p.status === "PAID" && (
+                <div className="pt-2 text-xs text-zinc-500">
+                  Recorded: {p.paymentMethod}
                 </div>
               )}
             </div>
