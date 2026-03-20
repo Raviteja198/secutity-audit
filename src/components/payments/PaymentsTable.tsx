@@ -294,7 +294,7 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
                             {deleting === p.id ? "..." : "Delete"}
                           </button>
                         </div>
-                      ) : p.status === "LATE" ? (
+                      ) : ["LATE", "PAID"].includes(p.status) ? (
                         <button
                           onClick={() => deletePayment(p.id)}
                           disabled={deleting === p.id}
@@ -416,8 +416,17 @@ export function PaymentsTable({ mode }: { mode: "admin" | "user" }) {
               )}
 
               {mode === "admin" && p.status === "PAID" && (
-                <div className="pt-2 text-xs text-zinc-500">
-                  Recorded: {p.paymentMethod}
+                <div className="pt-2 space-y-2">
+                  <div className="text-xs text-zinc-500">
+                    Recorded: {p.paymentMethod}
+                  </div>
+                  <button
+                    onClick={() => deletePayment(p.id)}
+                    disabled={deleting === p.id}
+                    className="w-full rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                  >
+                    {deleting === p.id ? "..." : "Delete"}
+                  </button>
                 </div>
               )}
             </div>
