@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Test and security tooling output
+coverage/
+zap-reports/
+burp-reports/
+security/evidence/raw/
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
