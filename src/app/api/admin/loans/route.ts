@@ -1,0 +1,45 @@
+import { NextRequest } from "next/server";
+import { forTenant } from "@/lib/tenantPrisma";
+import { requireAdmin } from "@/lib/api/authz";
+import { jsonCreated, jsonError, jsonOk } from "@/lib/api/http";
+import { loanCreateSchema } from "@/lib/validators/loans";
+import { createLoan } from "@/services/loans";
+import { writeAuditLog } from "@/lib/audit";
+
+export async function GET(req: NextRequest) {
+  try {
+    const ctx = await requireAdmin(req);
+    const db = forTenant(ctx.tenantId);
+    const items = await db.loan.findMany({
+      orderBy: [{ createdAt: "desc" }],
+      include: { member: true },
+    });
+    return jsonOk({ items });
+  } catch (e) {
+    return jsonError(e);
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const ctx = await requireAdmin(req);
+    const db = forTenant(ctx.tenantId);
+    const body = await req.json();
+    const parsed = loanCreateSchema.parse(body);
+
+    const created = await createLoan(db, ctx.tenantId, { ...parsed, createdById: ctx.userId });
+
+    await writeAuditLog(db, ctx.tenantId, req, {
+      adminId: ctx.userId,
+      action: "CREATE",
+      entity: "Loan",
+      entityId: created.id,
+      newValue: created,
+    });
+
+    return jsonCreated(created);
+  } catch (e) {
+    return jsonError(e);
+  }
+}
+

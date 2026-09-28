@@ -1,0 +1,7 @@
+{
+  "buildCommand": "npm run prisma:migrate && npm run build",
+  "installCommand": "npm ci",
+  "regions": [
+    "sin1"
+  ]
+}

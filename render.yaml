@@ -1,0 +1,13 @@
+services:
+  - type: cron
+    name: payment-reminders-cron
+    runtime: node
+    plan: free
+    schedule: "0 * * * *"
+    buildCommand: "true"
+    startCommand: 'curl -sf -X GET "$APP_URL/api/cron/payment-reminders" -H "Authorization: Bearer $CRON_SECRET"'
+    envVars:
+      - key: APP_URL
+        sync: false
+      - key: CRON_SECRET
+        sync: false

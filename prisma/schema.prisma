@@ -1,0 +1,563 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  LATE
+}
+
+enum LoanStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  CLOSED
+  DEFAULTED
+}
+
+/// A single organization using this deployment. Row-level tenancy: every
+/// tenant-scoped model below carries a tenantId FK back to this table.
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  logoUrl   String?
+  createdAt DateTime @default(now())
+
+  users                         User[]
+  members                       Member[]
+  contributionRules             ContributionRule[]
+  penaltyRules                  PenaltyRule[]
+  payments                      Payment[]
+  receipts                      Receipt[]
+  charities                     Charity[]
+  loans                         Loan[]
+  loanInstallments              LoanInstallment[]
+  loanRepayments                LoanRepayment[]
+  auditLogs                     AuditLog[]
+  termsAndConditions            TermsAndConditions[]
+  termsAndConditionsAcceptances TermsAndConditionsAcceptance[]
+  settings                      Setting[]
+  reminderTemplates             ReminderTemplate[]
+  scheduledReminders            ScheduledReminder[]
+  reminderRuns                  ReminderRun[]
+  reminderRunRecipients         ReminderRunRecipient[]
+  fund                          Fund?
+  transactions                  Transaction[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  email        String
+  name         String?
+  passwordHash String
+  role         UserRole @default(USER)
+  isActive     Boolean  @default(true)
+
+  // Member login link: set when admin creates a login for a member
+  memberId       String?   @unique
+  memberProfile  Member?   @relation("UserMemberProfile", fields: [memberId], references: [id], onDelete: SetNull)
+  otpGeneratedAt DateTime? // when admin last issued a one-time password
+  lastLoginAt    DateTime? // when the user last signed in successfully
+
+  // Self-service "forgot password" email OTP (separate from the admin-issued login OTP above)
+  resetOtpHash       String?
+  resetOtpExpiresAt  DateTime?
+  resetOtpAttempts   Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Admin actions (audit + ownership)
+  contributionRulesCreated ContributionRule[] @relation("ContributionRuleCreatedBy")
+  penaltyRulesCreated      PenaltyRule[]      @relation("PenaltyRuleCreatedBy")
+  paymentsRecorded         Payment[]          @relation("PaymentRecordedBy")
+  charitiesCreated         Charity[]          @relation("CharityCreatedBy")
+  loansCreated             Loan[]             @relation("LoanCreatedBy")
+  loansApproved            Loan[]             @relation("LoanApprovedBy")
+  installmentsRecorded     LoanInstallment[]  @relation("LoanInstallmentRecordedBy")
+  auditLogs                AuditLog[]         @relation("AuditLogAdmin")
+  termsAndConditionsUpdates TermsAndConditions[] @relation("TermsAndConditionsUpdatedBy")
+  termsAndConditionsAcceptances TermsAndConditionsAcceptance[] @relation("UserTermsAndConditionsAcceptance")
+  transactionsCreated      Transaction[]      @relation("TransactionCreatedBy")
+  loanRepaymentsRecorded   LoanRepayment[]    @relation("LoanRepaymentRecordedBy")
+  scheduledRemindersCreated ScheduledReminder[] @relation("ScheduledReminderCreatedBy")
+  reminderRunsTriggered    ReminderRun[]      @relation("ReminderRunTriggeredBy")
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, memberId])
+  @@index([tenantId])
+  @@index([role])
+  @@index([isActive])
+  @@index([memberId])
+}
+
+model Member {
+  id        String       @id @default(cuid())
+  tenantId  String
+  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  memberUid String // human-facing unique ID, unique per tenant
+  fullName  String
+  phone     String?
+  email     String?
+  address   String?
+
+  joinDate DateTime
+  exitDate DateTime?
+  status   MemberStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments  Payment[]
+  loans     Loan[]
+  loginUser User?     @relation("UserMemberProfile")
+  reminderRunRecipients ReminderRunRecipient[]
+
+  @@unique([tenantId, memberUid])
+  @@index([tenantId, status])
+  @@index([tenantId, joinDate])
+}
+
+/// Versioned monthly contribution rules.
+/// Exactly one rule can exist per (tenant, month, year).
+model ContributionRule {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  amountPaise        Int
+  effectiveFromMonth Int
+  effectiveFromYear  Int
+
+  createdById String
+  createdBy   User   @relation("ContributionRuleCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, effectiveFromMonth, effectiveFromYear])
+  @@index([tenantId, effectiveFromYear, effectiveFromMonth])
+  @@index([createdById])
+}
+
+/// Versioned penalty rules (late fee), per tenant.
+/// The newest rule at or before a payment's due date applies, but each Payment stores its own penaltyAmountPaise permanently.
+model PenaltyRule {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  amountPaise  Int
+  effectiveFrom DateTime
+
+  createdById String
+  createdBy   User   @relation("PenaltyRuleCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, effectiveFrom])
+  @@index([tenantId, effectiveFrom])
+  @@index([createdById])
+}
+
+model Payment {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
+
+  month Int
+  year  Int
+
+  baseAmountPaise    Int
+  penaltyAmountPaise Int @default(0)
+  totalAmountPaise   Int
+
+  status        PaymentStatus @default(PENDING)
+  paymentMethod PaymentMethod?
+  paidAt        DateTime?
+
+  recordedById String
+  recordedBy   User @relation("PaymentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  receipt Receipt?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, memberId, month, year])
+  @@index([tenantId, year, month])
+  @@index([tenantId, status])
+  @@index([tenantId, memberId])
+  @@index([tenantId, status, year, month])
+  @@index([tenantId, memberId, status, year, month])
+}
+
+model Receipt {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  paymentId String  @unique
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  receiptNumber String
+  pdfUrl        String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, receiptNumber])
+  @@index([tenantId, createdAt])
+}
+
+model Charity {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  title       String
+  beneficiary String
+  purpose     String?
+  amountPaise Int
+  date        DateTime
+  notes       String?
+  imageUrl    String?
+
+  createdById String
+  createdBy   User @relation("CharityCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, date])
+  @@index([createdById])
+}
+
+model Loan {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
+
+  principalPaise   Int
+  outstandingPrincipalPaise Int @default(0)
+  monthlyRateBps   Int // basis points per month (e.g., 200 = 2.00%)
+  durationMonths   Int
+  startDate        DateTime
+  status           LoanStatus @default(PENDING_APPROVAL)
+
+  // Month 1 is interest-only; subsequent behavior is modeled via installments.
+  termsJson Json?
+
+  createdById String
+  createdBy   User @relation("LoanCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  approvedById String?
+  approvedBy   User? @relation("LoanApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
+  approvedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  installments LoanInstallment[]
+  repayments  LoanRepayment[]
+
+  @@index([tenantId, memberId])
+  @@index([tenantId, status])
+  @@index([tenantId, startDate])
+  @@index([tenantId, memberId, status])
+}
+
+model LoanInstallment {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  loanId String
+  loan   Loan   @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  installmentNumber Int
+  dueDate           DateTime
+
+  interestDuePaise  Int
+  principalDuePaise Int
+
+  amountPaidPaise Int @default(0)
+  paidAt          DateTime?
+
+  overdueInterestPaise Int @default(0)
+
+  recordedById String?
+  recordedBy   User? @relation("LoanInstallmentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([loanId, installmentNumber])
+  @@index([tenantId])
+  @@index([dueDate])
+  @@index([loanId])
+  @@index([loanId, dueDate])
+}
+
+model AuditLog {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  adminId String
+  admin   User @relation("AuditLogAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+
+  action   String
+  entity   String
+  entityId String?
+
+  oldValue Json?
+  newValue Json?
+
+  ipAddress String?
+  userAgent String?
+
+  timestamp DateTime @default(now())
+
+  @@index([tenantId, timestamp])
+  @@index([adminId, timestamp])
+  @@index([entity, entityId])
+}
+
+model TermsAndConditions {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  content String // Rich text or markdown content
+  version Int @default(1)
+
+  updatedById String?
+  updatedBy   User? @relation("TermsAndConditionsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, version])
+  @@index([updatedById])
+}
+
+model TermsAndConditionsAcceptance {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  userId String
+  user   User   @relation("UserTermsAndConditionsAcceptance", fields: [userId], references: [id], onDelete: Cascade)
+
+  acceptedVersion Int // Version of T&C that was accepted
+  acceptedAt      DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, acceptedVersion])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([acceptedAt])
+}
+
+model Setting {
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  key      String
+  value    Json
+
+  updatedAt DateTime @updatedAt
+
+  @@id([tenantId, key])
+}
+
+/// A named, reusable payment-reminder email template. Admins can maintain several
+/// and pick one at send-time (manual "Send Reminders") or schedule-time (automatic).
+model ReminderTemplate {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  name      String
+  subject   String
+  body      String
+  isDefault Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  scheduledReminders ScheduledReminder[]
+  reminderRuns       ReminderRun[]
+
+  @@index([tenantId, isDefault])
+}
+
+enum ScheduledReminderType {
+  PENDING_PAYMENT_REMINDER
+  PAYMENT_GENERATION
+}
+
+enum ReminderRunTrigger {
+  MANUAL
+  SCHEDULED
+}
+
+/// An admin-configured, named recurring job — either "email members with pending
+/// dues" or "auto-generate this month's contribution payments" — checked once per
+/// cron tick. Multiple can coexist (e.g. a gentle reminder on day 12, a firmer one
+/// on day 20), each with its own day/hour/timezone and template.
+model ScheduledReminder {
+  id            String                @id @default(cuid())
+  tenantId      String
+  tenant        Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  name          String
+  type          ScheduledReminderType
+  enabled       Boolean               @default(false)
+  dayOfMonth    Int
+  hour          Int
+  minute        Int                   @default(0)
+  timezone      String                @default("Asia/Kolkata")
+  templateId    String?
+  template      ReminderTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  lastRunPeriod String? // "YYYY-MM" — prevents duplicate runs within the same month
+  sendEmail     Boolean               @default(true)
+  sendWhatsapp  Boolean               @default(false)
+
+  createdById String
+  createdBy   User   @relation("ScheduledReminderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  // ^ attributed as Payment.recordedById when PAYMENT_GENERATION fires on a schedule (no admin actively clicking)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  runs      ReminderRun[]
+
+  @@index([tenantId, enabled])
+}
+
+/// One execution of a reminder/notification send — manual button click or
+/// scheduled tick — with aggregate counts. Paired with ReminderRunRecipient for
+/// per-member drill-down.
+model ReminderRun {
+  id                  String                @id @default(cuid())
+  tenantId            String
+  tenant              Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  type                ScheduledReminderType
+  trigger             ReminderRunTrigger
+  scheduledReminderId String?
+  scheduledReminder   ScheduledReminder?    @relation(fields: [scheduledReminderId], references: [id], onDelete: SetNull)
+  templateId          String?
+  template            ReminderTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  triggeredById       String?
+  triggeredBy         User?                 @relation("ReminderRunTriggeredBy", fields: [triggeredById], references: [id], onDelete: SetNull)
+
+  sentCount    Int
+  skippedCount Int
+  period       String? // "YYYY-MM" context, when relevant
+
+  startedAt  DateTime               @default(now())
+  recipients ReminderRunRecipient[]
+
+  @@index([tenantId, startedAt])
+  @@index([tenantId, type])
+}
+
+model ReminderRunRecipient {
+  id       String      @id @default(cuid())
+  tenantId String
+  tenant   Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  runId    String
+  run      ReminderRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  memberId String
+  member   Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  email    String?
+  status   String // "SENT" | "FAILED"
+  error    String?
+
+  @@index([tenantId])
+  @@index([runId])
+  @@index([memberId])
+}
+
+enum TransactionType {
+  PAYMENT_RECEIVED
+  LOAN_DISBURSED
+  CHARITY_DISBURSED
+  LOAN_REPAYMENT
+}
+
+model Fund {
+  id       String @id @default(cuid())
+  tenantId String @unique
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  balance  Int    @default(0) // in paise
+
+  updatedAt DateTime @updatedAt
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  tenantId    String
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  type        TransactionType
+  amount      Int             // in paise, positive for inflow, negative for outflow
+  description String?
+
+  // References
+  paymentId   String?
+  loanId      String?
+  charityId   String?
+  repaymentId String?
+
+  createdById String
+  createdBy   User @relation("TransactionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, type])
+  @@index([tenantId, createdAt])
+  @@index([createdById])
+}
+
+model LoanRepayment {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  loanId String
+  loan   Loan   @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  amountPaise Int
+  paidAt      DateTime @default(now())
+
+  recordedById String
+  recordedBy   User @relation("LoanRepaymentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, loanId])
+  @@index([paidAt])
+}
